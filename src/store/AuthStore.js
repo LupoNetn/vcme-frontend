@@ -35,6 +35,15 @@ const useAuthStore = create( persist((set) => ({
         set({ loading: true })
         try {
             const res = await api.post("/auth/signup", data)
+            if (res.data.accessToken) {
+                localStorage.setItem("token", res.data.accessToken)
+            }
+            set({ 
+                user: res.data.user, 
+                accessToken: res.data.accessToken, 
+                refreshToken: res.data.refreshToken, 
+                isAuthenticated: true 
+            })
             return res
         } catch (error) {
             console.error("Signup error:", error)
@@ -50,7 +59,6 @@ const useAuthStore = create( persist((set) => ({
     },
 }), {
     name: "auth-storage",
-    storage: localStorage,
 }))
 
 export default useAuthStore

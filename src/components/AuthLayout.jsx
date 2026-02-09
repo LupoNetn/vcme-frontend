@@ -1,7 +1,15 @@
 import React from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, Navigate } from 'react-router-dom';
+import useAuthStore from '../store/AuthStore';
 
 const AuthLayout = () => {
+    const user = useAuthStore((state) => state.user)
+    console.log(user);
+
+    if (user) {
+        return <Navigate to="/" />
+    }
+
   return (
     <div className="min-h-screen w-full flex bg-[#0f172a] text-white overflow-hidden relative">
       {/* Background Decorative Elements */}

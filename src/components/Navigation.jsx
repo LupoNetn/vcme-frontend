@@ -1,15 +1,26 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { Home, ClipboardList, Video, User, Plus } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { Home, ClipboardList, Video, User, Plus, Settings, LogOut } from 'lucide-react';
+import useAuthStore from '../store/AuthStore';
+import toast from 'react-hot-toast';
 
 /**
  * Sidebar component - Clean Slate
  */
 const Sidebar = () => {
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    toast.success('Logged out successfully');
+    navigate('/login');
+  };
+
   return (
-    <nav className="hidden md:flex w-64 flex-col gap-10 p-8 h-screen sticky top-0 bg-[#0f172a] border-r border-white/5">
+    <nav className="hidden md:flex w-64 flex-col p-8 h-screen sticky top-0 bg-[#0f172a] border-r border-white/5">
       {/* Brand Logo - Flat & Sharp */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 mb-10">
         <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/10">
           <Video size={22} className="text-slate-900" />
         </div>
@@ -25,14 +36,27 @@ const Sidebar = () => {
         <NavItem to="/logs" icon={<ClipboardList size={18} />} label="History" />
       </div>
 
-      {/* User Card - Flat & Integrated */}
-      <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-slate-700 flex items-center justify-center">
-          <User size={16} className="text-slate-300" />
+      {/* Bottom Actions & User Card */}
+      <div className="mt-auto space-y-6">
+        <div className="flex flex-col gap-1 border-t border-white/5 pt-6">
+          <NavItem to="/settings" icon={<Settings size={18} />} label="Settings" />
+          <button 
+            onClick={handleLogout}
+            className="group flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-zinc-400 hover:text-red-400 hover:bg-red-400/5"
+          >
+            <LogOut size={18} />
+            <span className="font-semibold text-sm">Logout</span>
+          </button>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white/90 truncate">Lupo Neto</p>
-          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-tight">Pro</p>
+
+        <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-slate-700 flex items-center justify-center">
+            <User size={16} className="text-slate-300" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white/90 truncate">{user?.name || 'Guest'}</p>
+            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-tight">Pro</p>
+          </div>
         </div>
       </div>
     </nav>

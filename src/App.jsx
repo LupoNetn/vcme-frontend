@@ -15,6 +15,7 @@ import useAuthStore from './store/AuthStore';
 const Home = lazy(() => import('./pages/Home'));
 const CallRoom = lazy(() => import('./pages/CallRoom'));
 const CallLogs = lazy(() => import('./pages/CallLogs'));
+const Settings = lazy(() => import('./pages/Settings'));
 const Login = lazy(() => import('./pages/auth/Login'));
 const Signup = lazy(() => import('./pages/auth/Signup'));
 
@@ -47,6 +48,7 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <Home /> },
           { path: 'logs', element: <CallLogs /> },
+          { path: 'settings', element: <Settings /> },
           { path: 'call/:callId', element: <CallRoom /> },
         ],
       },
