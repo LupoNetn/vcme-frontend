@@ -1,6 +1,6 @@
 import React from 'react';
 import { User, Bell, Shield, Moon, Monitor } from 'lucide-react';
-import useAuthStore from '../../store/AuthStore';
+import useAuthStore from '../store/AuthStore';
 
 const Settings = () => {
   const { user } = useAuthStore();

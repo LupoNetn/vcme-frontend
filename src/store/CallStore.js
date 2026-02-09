@@ -4,12 +4,18 @@ const useCallStore = create((set) => ({
     //users call state
     userCalls: [],
     setUserCalls: (calls) => set({ userCalls: calls }),
+    isWaitingRoom: false,
+    setIsWaitingRoom: (isWaitingRoom) => set({ isWaitingRoom }),
+    isParticipant: false,
+    setIsParticipant: (isParticipant) => set({ isParticipant }),
 
     //current call user is in state 
     currentCall: null,
     streams: null,
     callParticipants: null,
     CallWaitlist: null,
+    newUserInWaitlistID: null,
+    setNewUserInWaitlistID: (newUserInWaitlistID) => set({ newUserInWaitlistID }),
     setCurrentCall: (call) => set({ currentCall: call }),
     setStreams: (streams) => set({ streams }),
     setCallParticipants: (participants) => set({ callParticipants: participants }),

@@ -5,16 +5,18 @@ import CallLinkForm from "../components/CallLinkForm";
 import useCall from "../hooks/useCall";
 import useAuthStore from "../store/AuthStore";
 import useCallStore from "../store/CallStore";
+import useWebsocketStore from "../store/WebsocketStore";
 
 const Home = () => {
   const [showForm, setShowForm] = useState(false);
   const { user } = useAuthStore();
   const { userCalls } = useCallStore();
   const { listCalls, isLoading } = useCall();
+  const send = useWebsocketStore((state) => state.send)
 
   useEffect(() => {
     if (user?.id) {
-      listCalls(user.id);
+      listCalls();
     }
   }, [user?.id]);
 
@@ -22,6 +24,17 @@ const Home = () => {
     navigator.clipboard.writeText(`http://localhost:5173/call/${link}`);
     toast.success("Link copied to clipboard");
   };
+
+  const handleJoinCall = (call) => {
+   const payload = {
+    event_type: "join_room",
+    payload: {
+      call_id: call.id,
+      call_link: call.call_link
+    }
+   }
+   send(payload)
+  }
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -81,18 +94,24 @@ const Home = () => {
                 {call.title}
               </h3>
               <p className="text-slate-400 text-sm line-clamp-2 mb-6 flex-1">
-                {call.description?.String || "No description provided."}
+                {call.description || "No description provided."}
               </p>
 
               <div className="space-y-4 pt-4 border-t border-white/5">
                 <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest">
                   <div className="flex items-center gap-1.5 text-slate-500">
                     <Calendar size={14} />
-                    <span>{new Date(call.created_at).toLocaleDateString()}</span>
+                    <span>
+                      {new Date(call.created_at).toLocaleDateString()} at{" "}
+                      {new Date(call.created_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </div>
                 </div>
 
-                <button className="w-full flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl transition-all group/btn">
+                <button onClick={() => handleJoinCall(call)} className="w-full flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl transition-all group/btn">
                   Join Call
                   <ArrowRight
                     size={16}

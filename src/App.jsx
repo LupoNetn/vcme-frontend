@@ -16,6 +16,7 @@ const Home = lazy(() => import('./pages/Home'));
 const CallRoom = lazy(() => import('./pages/CallRoom'));
 const CallLogs = lazy(() => import('./pages/CallLogs'));
 const Settings = lazy(() => import('./pages/Settings'));
+const WaitingRoom = lazy(() => import('./pages/WaitingRoom'));
 const Login = lazy(() => import('./pages/auth/Login'));
 const Signup = lazy(() => import('./pages/auth/Signup'));
 
@@ -49,6 +50,7 @@ const router = createBrowserRouter([
           { index: true, element: <Home /> },
           { path: 'logs', element: <CallLogs /> },
           { path: 'settings', element: <Settings /> },
+          { path: 'waiting-room/:callId', element: <WaitingRoom /> },
           { path: 'call/:callId', element: <CallRoom /> },
         ],
       },

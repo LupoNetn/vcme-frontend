@@ -9,12 +9,12 @@ const useCall = () => {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState(null)
     
-    const listCalls = async (hostId) => {
-        if (!hostId) return;
+    const listCalls = async () => {
+       // if (!hostId) return;
         try {
             setIsLoading(true)
             setError(null)
-            const res = await api.get(`/calls/${hostId}`)
+            const res = await api.get(`/calls/`)
             if (res.status === 200) {
                 useCallStore.setState({
                     userCalls: res.data.calls || []
@@ -23,6 +23,7 @@ const useCall = () => {
         } catch (error) {
             console.error("List calls error:", error)
             setError(error.response?.data?.error || "Failed to fetch calls")
+            toast.error(error.response?.data?.error || "Failed to fetch calls")
         } finally {
             setIsLoading(false)
         }

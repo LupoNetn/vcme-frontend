@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Mic, Video, PhoneOff } from 'lucide-react';
+import WaitingRoomApproval from '../components/WaitingRoomApproval';
 
 const CallRoom = () => {
   const { callId } = useParams();
@@ -8,6 +9,7 @@ const CallRoom = () => {
 
   return (
     <div className="min-h-screen bg-neutral-900 p-4 flex flex-col items-center justify-center">
+      <WaitingRoomApproval />
       <div className="w-full max-w-5xl aspect-video bg-neutral-800 rounded-3xl overflow-hidden relative border border-white/5 shadow-2xl">
         {/* Remote Video Placeholder */}
         <div className="absolute inset-0 flex items-center justify-center">

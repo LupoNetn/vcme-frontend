@@ -1,9 +1,40 @@
-import React, { Suspense } from 'react'
+import React, { Suspense, useEffect } from 'react'
 import { Sidebar, BottomNav } from './Navigation';
 import Navbar from './Navbar';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
+import useAuthStore from '../store/AuthStore';
+import useWebsocketStore from '../store/WebsocketStore';
+import useCallStore from '../store/CallStore';
 
 const AppLayout = () => {
+  const navigate = useNavigate();
+  const { isWaitingRoom, isParticipant, currentCall } = useCallStore();
+  const { isAuthenticated } = useAuthStore();
+  const connect = useWebsocketStore((state) => state.connect);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      connect();
+    }
+  }, [isAuthenticated, connect]);
+
+  // Handle centralized navigation for WebSocket events
+  useEffect(() => {
+    if (isWaitingRoom && currentCall) {
+      if (!window.location.pathname.includes('/waiting-room')) {
+        navigate(`/waiting-room/${currentCall}`);
+      }
+    }
+  }, [isWaitingRoom, currentCall, navigate]);
+
+  useEffect(() => {
+    if (isParticipant && currentCall) {
+      if (!window.location.pathname.includes('/call/')) {
+        navigate(`/call/${currentCall}`);
+      }
+    }
+  }, [isParticipant, currentCall, navigate]);
+
   return (
       <div className="min-h-screen bg-[#050505] text-white flex flex-col md:flex-row antialiased overflow-hidden">
         <Sidebar />
