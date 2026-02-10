@@ -5,7 +5,7 @@ import CallLinkForm from "../components/CallLinkForm";
 import useCall from "../hooks/useCall";
 import useAuthStore from "../store/AuthStore";
 import useCallStore from "../store/CallStore";
-import useWebsocketStore from "../store/WebsocketStore";
+import useWebsocketStore from "../store/WebsocketStore.jsx";
 
 const Home = () => {
   const [showForm, setShowForm] = useState(false);

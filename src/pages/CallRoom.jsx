@@ -2,10 +2,28 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Mic, Video, PhoneOff } from 'lucide-react';
 import WaitingRoomApproval from '../components/WaitingRoomApproval';
+import useWebsocketStore from '../store/WebsocketStore.jsx';
+import useAuthStore from '../store/AuthStore';
+import useCallStore from '../store/CallStore';
 
 const CallRoom = () => {
   const { callId } = useParams();
   const navigate = useNavigate();
+  const send = useWebsocketStore((state) => state.send)
+  const user = useAuthStore((state) => state.user)
+  const currentCall = useCallStore((state) => state.currentCall)
+
+  const handleLeaveRoom = () => {
+
+    const payload = {
+    event_type: "leave_room",
+    payload: {
+      call_id: currentCall,
+      participant_id: user.id,
+      },
+    };
+    send(payload);
+  }
 
   return (
     <div className="min-h-screen bg-neutral-900 p-4 flex flex-col items-center justify-center">
@@ -30,7 +48,7 @@ const CallRoom = () => {
             <Video size={20} />
           </button>
           <button 
-            onClick={() => navigate('/')}
+            onClick={() => handleLeaveRoom()}
             className="p-4 rounded-full bg-red-500 hover:bg-red-600 transition-colors text-white shadow-lg shadow-red-500/30"
             title="End Call"
           >

@@ -2,19 +2,38 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import useCallStore from '../store/CallStore';
+import useWebsocketStore from '../store/WebsocketStore.jsx';
+import useAuthStore from '../store/AuthStore';
 
 const WaitingRoom = () => {
     const { callId } = useParams();
     const navigate = useNavigate();
     const isWaitingRoom = useCallStore((state) => state.isWaitingRoom);
-
     const setIsWaitingRoom = useCallStore((state) => state.setIsWaitingRoom);
     const setCurrentCall = useCallStore((state) => state.setCurrentCall);
+    const send = useWebsocketStore((state) => state.send);
+    const user = useAuthStore((state) => state.user);
+
+    const handleLeave = () => {
+        const payload = {
+            event_type: "leave_room",
+            payload: {
+                call_id: callId,
+                participant_id: user?.id,
+            },
+        };
+        send(payload);
+        
+        // Reset local state
+        setIsWaitingRoom(false);
+        setCurrentCall(null);
+        navigate('/');
+    };
 
     useEffect(() => {
         setIsWaitingRoom(true);
         setCurrentCall(callId);
-    }, []);
+    }, [callId]);
 
     return (
         <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#0f172a] to-[#0f172a]">
@@ -56,16 +75,16 @@ const WaitingRoom = () => {
 
                 {/* Actions */}
                 <button
-                    onClick={() => navigate('/')}
+                    onClick={handleLeave}
                     className="group inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors py-2"
                 >
                     <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                    Back to Dashboard
+                    Cancel & Leave Room
                 </button>
             </div>
 
             {/* Micro-animations */}
-            <style jsx>{`
+            <style>{`
                 @keyframes loading-bar {
                     0% { transform: scaleX(0); }
                     50% { transform: scaleX(0.7); }

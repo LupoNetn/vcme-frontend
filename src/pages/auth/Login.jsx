@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/AuthStore';
-import useWebsocketStore from '../../store/WebsocketStore';
+import useWebsocketStore from '../../store/WebsocketStore.jsx';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
