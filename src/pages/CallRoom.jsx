@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Mic, Video, PhoneOff } from 'lucide-react';
 import WaitingRoomApproval from '../components/WaitingRoomApproval';
 import useWebsocketStore from '../store/WebsocketStore.jsx';
 import useAuthStore from '../store/AuthStore';
 import useCallStore from '../store/CallStore';
+import useVideoStore from '../store/VideoStore.js';
 
 const CallRoom = () => {
   const { callId } = useParams();
@@ -12,6 +13,41 @@ const CallRoom = () => {
   const send = useWebsocketStore((state) => state.send)
   const user = useAuthStore((state) => state.user)
   const currentCall = useCallStore((state) => state.currentCall)
+  const localStream = useVideoStore((state) => state.localStream)
+  const remoteStream = useVideoStore((state) => state.remoteStream)
+  const remoteStreamRef = useRef(null)
+  const localStreamRef = useRef(null)
+
+  useEffect(() => {
+    if(localStream && localStreamRef.current) {
+        localStreamRef.current.srcObject = localStream
+    }
+  },[localStream])
+
+  useEffect(() => {
+    if(remoteStream && remoteStreamRef.current) {
+        remoteStreamRef.current.srcObject = remoteStream
+    }
+  },[remoteStream])
+
+  const getCallInitiator = () => {
+    console.log("heyj")
+    const payload = {
+      event_type: "get_initiator",
+      payload: {
+        call_id: currentCall,
+        participant_id: user.id,
+      }
+    }
+    send(payload)
+  }
+
+  useEffect(() => {
+    if (currentCall && user?.id) {
+      getCallInitiator()
+    }
+  }, [currentCall, user?.id])
+ 
 
   const handleLeaveRoom = () => {
 
@@ -25,18 +61,36 @@ const CallRoom = () => {
     send(payload);
   }
 
+  useEffect(() => {
+    return () => {
+        // Optional: you could reset here too, but handleLeftRoom usually covers it
+        // resetPeerConnection() 
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-neutral-900 p-4 flex flex-col items-center justify-center">
       <WaitingRoomApproval />
       <div className="w-full max-w-5xl aspect-video bg-neutral-800 rounded-3xl overflow-hidden relative border border-white/5 shadow-2xl">
         {/* Remote Video Placeholder */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <p className="text-gray-500 text-lg">Waiting for participant...</p>
+        <div className="absolute inset-0 flex items-center justify-center bg-black">
+          <video 
+            ref={remoteStreamRef} 
+            autoPlay 
+            playsInline
+            className="w-full h-full object-cover"
+          />
         </div>
 
         {/* Local Video Placeholder */}
         <div className="absolute bottom-6 right-6 w-48 aspect-video bg-neutral-700 rounded-xl border-2 border-white/10 shadow-lg overflow-hidden flex items-center justify-center">
-          <span className="text-xs text-gray-400">You</span>
+         <video 
+            ref={localStreamRef} 
+            autoPlay 
+            muted
+            playsInline
+            className="w-full h-full object-cover -scale-x-100"
+         />
         </div>
 
         {/* Controls */}

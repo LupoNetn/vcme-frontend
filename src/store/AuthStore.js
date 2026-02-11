@@ -2,7 +2,7 @@ import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import api from "../lib/axios"
 
-const useAuthStore = create( persist((set) => ({
+const useAuthStore = create((set) => ({
     user: null,
     loading: false,
     accessToken: null,
@@ -57,8 +57,6 @@ const useAuthStore = create( persist((set) => ({
         localStorage.removeItem("token")
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false })
     },
-}), {
-    name: "auth-storage",
 }))
 
 export default useAuthStore
