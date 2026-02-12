@@ -40,12 +40,6 @@ const useAuthStore = create(
                     if (res.data.accessToken) {
                         localStorage.setItem("token", res.data.accessToken)
                     }
-                    set({ 
-                        user: res.data.user, 
-                        accessToken: res.data.accessToken, 
-                        refreshToken: res.data.refreshToken, 
-                        isAuthenticated: true 
-                    })
                     return res
                 } catch (error) {
                     console.error("Signup error:", error)

@@ -25,7 +25,7 @@ const Home = () => {
   }, [user?.id]);
 
   const copyToClipboard = (link) => {
-    navigator.clipboard.writeText(`http://localhost:5173/call/${link}`);
+    navigator.clipboard.writeText(`${window.location.origin}/call/${link}`);
     toast.success("Link copied to clipboard");
   };
 
