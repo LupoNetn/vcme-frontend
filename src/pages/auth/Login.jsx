@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/AuthStore';
 import useWebsocketStore from '../../store/WebsocketStore.jsx';
@@ -9,7 +9,10 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { login, loading } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const connect = useWebsocketStore((state) => state.connect)
+
+  const from = location.state?.from?.pathname || "/";
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,7 +26,7 @@ const Login = () => {
     if (res.status === 200 || res.status === 201) {
       toast.success('Welcome back! Redirecting...');
       connect()
-      navigate('/');
+      navigate(from, { replace: true });
     } else {
       const message = res.response?.data?.message || 'Login failed. Please check your credentials.';
       toast.error(message);

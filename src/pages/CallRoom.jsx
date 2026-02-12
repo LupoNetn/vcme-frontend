@@ -6,17 +6,42 @@ import useWebsocketStore from '../store/WebsocketStore.jsx';
 import useAuthStore from '../store/AuthStore';
 import useCallStore from '../store/CallStore';
 import useVideoStore from '../store/VideoStore.js';
+import useCall from '../hooks/useCall';
 
 const CallRoom = () => {
-  const { callId } = useParams();
+  const params = useParams();
+  const callId = params['*'];
   const navigate = useNavigate();
   const send = useWebsocketStore((state) => state.send)
   const user = useAuthStore((state) => state.user)
   const currentCall = useCallStore((state) => state.currentCall)
   const localStream = useVideoStore((state) => state.localStream)
   const remoteStream = useVideoStore((state) => state.remoteStream)
+  const { findCallByLink } = useCall();
   const remoteStreamRef = useRef(null)
   const localStreamRef = useRef(null)
+
+  useEffect(() => {
+    const autoJoin = async () => {
+        if (callId && !currentCall && user?.id) {
+            console.log("Direct link detected, attempting auto-join...");
+            const call = await findCallByLink(callId);
+            if (call) {
+                const payload = {
+                    event_type: "join_room",
+                    payload: {
+                        call_id: call.id,
+                        call_link: call.call_link
+                    }
+                }
+                send(payload);
+            } else {
+                navigate('/');
+            }
+        }
+    }
+    autoJoin();
+  }, [callId, currentCall, user?.id]);
 
   useEffect(() => {
     if(localStream && localStreamRef.current) {

@@ -3,7 +3,8 @@ import {
   createBrowserRouter, 
   RouterProvider, 
   Outlet, 
-  Navigate 
+  Navigate,
+  useLocation
 } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import AppLayout from './components/AppLayout';
@@ -29,7 +30,8 @@ const LoadingFallback = () => (
 // Protected Route Component
 const ProtectedRoute = () => {
   const { isAuthenticated } = useAuthStore();
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+  const location = useLocation();
+  return isAuthenticated ? <Outlet /> : <Navigate to="/login" state={{ from: location }} replace />;
 };
 
 // Public Route Component (redirects to home if already logged in)
@@ -50,8 +52,8 @@ const router = createBrowserRouter([
           { index: true, element: <Home /> },
           { path: 'logs', element: <CallLogs /> },
           { path: 'settings', element: <Settings /> },
-          { path: 'waiting-room/:callId', element: <WaitingRoom /> },
-          { path: 'call/:callId', element: <CallRoom /> },
+          { path: 'waiting-room/*', element: <WaitingRoom /> },
+          { path: 'call/*', element: <CallRoom /> },
         ],
       },
     ],

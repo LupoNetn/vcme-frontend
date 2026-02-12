@@ -6,7 +6,8 @@ import useWebsocketStore from '../store/WebsocketStore.jsx';
 import useAuthStore from '../store/AuthStore';
 
 const WaitingRoom = () => {
-    const { callId } = useParams();
+    const params = useParams();
+    const callId = params['*'];
     const navigate = useNavigate();
     const isWaitingRoom = useCallStore((state) => state.isWaitingRoom);
     const setIsWaitingRoom = useCallStore((state) => state.setIsWaitingRoom);

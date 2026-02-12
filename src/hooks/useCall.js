@@ -9,12 +9,12 @@ const useCall = () => {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState(null)
     
-    const listCalls = async () => {
-       // if (!hostId) return;
+    const listCalls = async (hostId) => {
         try {
             setIsLoading(true)
             setError(null)
-            const res = await api.get(`/calls/`)
+            const url = hostId ? `/calls/${hostId}` : `/calls/`
+            const res = await api.get(url)
             if (res.status === 200) {
                 useCallStore.setState({
                     userCalls: res.data.calls || []
@@ -50,9 +50,23 @@ const useCall = () => {
         }
     }
 
+    const findCallByLink = async (link) => {
+        try {
+            setIsLoading(true)
+            const res = await api.get(`/calls/link/${link}`)
+            return res.data.call
+        } catch (error) {
+            console.error("Find call error:", error)
+            return null
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     return {
         createCallLink,
         listCalls,
+        findCallByLink,
         isLoading,
         error
     }
