@@ -3,6 +3,7 @@ import { create } from "zustand"
 import { toast } from "react-hot-toast"
 import { Loader2, CheckCircle2, XCircle, Bell, LogIn, LogOut } from "lucide-react"
 import { handleAcceptedIntoRoom, handleHostJoinedRoom, handleLeftRoom, handleNewParticipantRequest, handleWaitingRoom, handleDeclinedFromRoom, handleInitiatorRes, handleAnswer, handleOffer, handleIceCandidate } from "../lib/websocketHandlers"
+import { WS_URL } from "../config"
 
 
 const useWebsocketStore = create((set,get) => ({
@@ -14,7 +15,7 @@ const useWebsocketStore = create((set,get) => ({
         if(get().socket) return
 
         const token = localStorage.getItem("token")
-        const ws = new WebSocket(`ws://localhost:5000/ws/?token=${token}`)
+        const ws = new WebSocket(`${WS_URL}/ws/?token=${token}`)
 
         // Pre-set socket to prevent duplicate connection attempts
         set({ socket: ws })
