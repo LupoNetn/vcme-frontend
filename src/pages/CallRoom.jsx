@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Mic, Video, PhoneOff } from 'lucide-react';
+import { Mic, Video, PhoneOff, MicOff, VideoOff, User } from 'lucide-react';
 import WaitingRoomApproval from '../components/WaitingRoomApproval';
 import useWebsocketStore from '../store/WebsocketStore.jsx';
 import useAuthStore from '../store/AuthStore';
@@ -20,6 +20,9 @@ const CallRoom = () => {
   const { findCallByLink } = useCall();
   const remoteStreamRef = useRef(null)
   const localStreamRef = useRef(null)
+  
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
 
   useEffect(() => {
     const autoJoin = async () => {
@@ -54,6 +57,26 @@ const CallRoom = () => {
         remoteStreamRef.current.srcObject = remoteStream
     }
   },[remoteStream])
+
+  const toggleAudio = () => {
+    if (localStream) {
+      const audioTracks = localStream.getAudioTracks();
+      if (audioTracks.length > 0) {
+        audioTracks[0].enabled = !audioTracks[0].enabled;
+        setIsMuted(!audioTracks[0].enabled);
+      }
+    }
+  };
+
+  const toggleVideo = () => {
+    if (localStream) {
+      const videoTracks = localStream.getVideoTracks();
+      if (videoTracks.length > 0) {
+        videoTracks[0].enabled = !videoTracks[0].enabled;
+        setIsVideoOff(!videoTracks[0].enabled);
+      }
+    }
+  };
 
   const getCallInitiator = () => {
     console.log("heyj")
@@ -94,50 +117,85 @@ const CallRoom = () => {
   }, [])
 
   return (
-    <div className="min-h-screen bg-neutral-900 p-4 flex flex-col items-center justify-center">
+    <div className="fixed inset-0 h-[100dvh] w-full bg-black overflow-hidden z-50">
       <WaitingRoomApproval />
-      <div className="w-full max-w-5xl aspect-video bg-neutral-800 rounded-3xl overflow-hidden relative border border-white/5 shadow-2xl">
-        {/* Remote Video Placeholder */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black">
-          <video 
-            ref={remoteStreamRef} 
-            autoPlay 
-            playsInline
-            className="w-full h-full object-cover"
-          />
-        </div>
+      
+      {/* Remote Video - Full Screen (Long and Wide) */}
+      <div className="absolute inset-0 z-0">
+        <video 
+          ref={remoteStreamRef} 
+          autoPlay 
+          playsInline
+          className="w-full h-full object-cover"
+        />
+        {/* Fallback if no remote stream */}
+        {!remoteStream && (
+             <div className="absolute inset-0 flex items-center justify-center bg-neutral-900">
+               <div className="text-center space-y-4">
+                 <div className="w-20 h-20 bg-neutral-800 rounded-full flex items-center justify-center mx-auto animate-pulse border border-white/10">
+                     <User className="text-neutral-500" size={32} />
+                 </div>
+                 <p className="text-neutral-400 text-sm font-medium">Waiting for participant...</p>
+               </div>
+             </div>
+        )}
+      </div>
 
-        {/* Local Video Placeholder */}
-        <div className="absolute bottom-6 right-6 w-48 aspect-video bg-neutral-700 rounded-xl border-2 border-white/10 shadow-lg overflow-hidden flex items-center justify-center">
+      {/* Local Video - PIP (Bottom aligned, inside remote video) */}
+      <div className="absolute bottom-28 right-4 w-28 md:w-48 aspect-[3/4] bg-neutral-800 rounded-xl overflow-hidden shadow-2xl border border-white/20 z-20 transition-all duration-300 hover:scale-105">
          <video 
             ref={localStreamRef} 
             autoPlay 
             muted
             playsInline
-            className="w-full h-full object-cover -scale-x-100"
+            className={`w-full h-full object-cover -scale-x-100 ${isVideoOff ? 'hidden' : ''}`}
          />
-        </div>
-
-        {/* Controls */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-6 px-8 py-4 bg-black/40 backdrop-blur-xl rounded-full border border-white/10">
-          <button className="p-4 rounded-full bg-neutral-700 hover:bg-neutral-600 transition-colors text-white" title="Toggle Mic">
-            <Mic size={20} />
-          </button>
-          <button className="p-4 rounded-full bg-neutral-700 hover:bg-neutral-600 transition-colors text-white" title="Toggle Camera">
-            <Video size={20} />
-          </button>
-          <button 
-            onClick={() => handleLeaveRoom()}
-            className="p-4 rounded-full bg-red-500 hover:bg-red-600 transition-colors text-white shadow-lg shadow-red-500/30"
-            title="End Call"
-          >
-            <PhoneOff size={20} />
-          </button>
-        </div>
+         {isVideoOff && (
+            <div className="w-full h-full flex items-center justify-center bg-neutral-700">
+                <VideoOff className="text-white/50" />
+            </div>
+         )}
       </div>
-      
-      <div className="mt-8 text-neutral-500 text-sm">
-        Room ID: <span className="text-neutral-300 font-mono">{callId || 'direct-call'}</span>
+
+      {/* Top Bar - Minimal Info */}
+      <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/60 to-transparent z-10 flex items-center justify-between pointer-events-none">
+          <div className="flex items-center gap-2">
+             <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
+                 V
+             </div>
+             <div>
+                 <p className="text-white/90 text-xs font-mono bg-black/20 px-2 py-1 rounded-full backdrop-blur-sm border border-white/5">
+                    {callId?.slice(0, 8)}...
+                 </p>
+             </div>
+          </div>
+      </div>
+
+      {/* Bottom Controls - Compact & Smaller */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 bg-black/40 backdrop-blur-xl rounded-full border border-white/10 z-30 flex items-center gap-6 shadow-2xl">
+        <button 
+            onClick={toggleAudio}
+            className={`p-3 rounded-full transition-all active:scale-90 ${isMuted ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}
+            title="Toggle Mic"
+        >
+          {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
+        </button>
+        
+        <button 
+            onClick={() => handleLeaveRoom()}
+            className="p-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-all active:scale-90 text-white shadow-lg shadow-red-500/30"
+            title="End Call"
+        >
+          <PhoneOff size={24} fill="currentColor" />
+        </button>
+
+        <button 
+            onClick={toggleVideo}
+            className={`p-3 rounded-full transition-all active:scale-90 ${isVideoOff ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'}`} 
+            title="Toggle Camera"
+        >
+          {isVideoOff ? <VideoOff size={20} /> : <Video size={20} />}
+        </button>
       </div>
     </div>
   );
