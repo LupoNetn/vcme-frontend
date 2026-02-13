@@ -19,7 +19,22 @@ const rtcConfig = {
     {
       urls: "stun:stun.l.google.com:19302",
     },
+    {
+      urls: "stun:stun1.l.google.com:19302",
+    },
+    // Add free TURN servers for better NAT traversal
+    {
+      urls: "turn:openrelay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turn:openrelay.metered.ca:443",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
   ],
+  iceCandidatePoolSize: 10,
 };
 
 let peerConnection = new RTCPeerConnection(rtcConfig);
@@ -61,15 +76,52 @@ const setupPeerEvents = (pc) => {
                     data: event.candidate,
                 },
             });
+        } else {
+            console.log("All ICE candidates have been sent");
         }
     };
 
     pc.oniceconnectionstatechange = () => {
         console.log("ICE Connection State:", pc.iceConnectionState);
+        
+        // Handle different ICE connection states
+        switch (pc.iceConnectionState) {
+            case 'connected':
+                console.log("✅ ICE Connection established successfully");
+                break;
+            case 'disconnected':
+                console.warn("⚠️ ICE Connection temporarily disconnected");
+                // Connection may recover by itself
+                break;
+            case 'failed':
+                console.error("❌ ICE Connection failed - attempting restart");
+                // Try ICE restart
+                pc.restartIce();
+                break;
+            case 'closed':
+                console.log("ICE Connection closed");
+                break;
+        }
     };
     
     pc.onsignalingstatechange = () => {
         console.log("Signaling State:", pc.signalingState);
+    };
+
+    pc.onconnectionstatechange = () => {
+        console.log("Connection State:", pc.connectionState);
+        
+        switch (pc.connectionState) {
+            case 'connected':
+                console.log("✅ Peer connection established");
+                break;
+            case 'disconnected':
+                console.warn("⚠️ Peer connection disconnected");
+                break;
+            case 'failed':
+                console.error("❌ Peer connection failed");
+                break;
+        }
     };
 };
 
