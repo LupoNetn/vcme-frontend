@@ -63,12 +63,55 @@ const useCall = () => {
         }
     }
 
+    const endCall = async (data) => {
+        const {user_id, call_id,participant_count,call_title,participant,time,duration} = data
+        try {
+            setIsLoading(true)
+            setError(null)
+            console.log(data)
+
+            const res = await api.post("/calls/end", {user_id, call_id,participant_count,call_title,participant,time,duration})
+            if (res.status === 200) {
+                setIsLoading(false)
+                setError(null)
+                useCallStore.setState({ callLogs: res.data.callLogs })
+                toast.success("Call ended successfully")
+                return res.data // Return data so the caller can use it
+            }
+        } catch (error) {
+             setIsLoading(false)
+            setError(error.response?.data?.error || "Failed to end call")
+            console.log(error.response?.data?.error)
+            toast.error(error.response?.data?.error || "Failed to end call")
+           }
+        
+    }
+
+    const fetchCallLogs = async (userId) => {
+        try {
+            setIsLoading(true)
+            setError(null)
+            const res = await api.get(`/calls/logs/${userId}`)
+            if (res.status === 200) {
+                useCallStore.setState({ callLogs: res.data.call_logs || [] })
+            }
+        } catch (error) {
+            console.error("Fetch call logs error:", error)
+            setError(error.response?.data?.error || "Failed to fetch call logs")
+            toast.error(error.response?.data?.error || "Failed to fetch call logs")
+        } finally {
+            setIsLoading(false)
+        }
+    }
+    
     return {
         createCallLink,
         listCalls,
         findCallByLink,
         isLoading,
-        error
+        error,
+        endCall,
+        fetchCallLogs
     }
 }
 

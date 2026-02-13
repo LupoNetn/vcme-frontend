@@ -10,6 +10,8 @@ const useCallStore = create((set) => ({
     setIsParticipant: (isParticipant) => set({ isParticipant }),
     targetUserId: null,
     setTargetUserId: (targetUserId) => set({ targetUserId }),
+    callLogs: [],
+    setCallLogs: (callLogs) => set({ callLogs }),
 
     //current call user is in state 
     currentCall: null,
