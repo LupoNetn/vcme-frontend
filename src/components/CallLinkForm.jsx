@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Video, Type, AlignLeft, Plus } from "lucide-react";
+import { X, Video, Type, AlignLeft, Plus, Copy, Check, ExternalLink } from "lucide-react";
 import useCall from "../hooks/useCall";
 import useAuthStore from "../store/AuthStore";
 
@@ -15,6 +15,9 @@ const CallLinkForm = ({ onClose }) => {
     description: ""
   });
 
+  const [createdLink, setCreatedLink] = useState(null);
+  const [copied, setCopied] = useState(false);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -24,17 +27,120 @@ const CallLinkForm = ({ onClose }) => {
     e.preventDefault();
     if (!formData.title.trim()) return;
 
-    await createCallLink({
-      title: formData.title,
-      description: formData.description,
-      host_id: user?.id
-    });
-    
-    onClose(); // Close modal after attempt
+    try {
+      const result = await createCallLink({
+        title: formData.title,
+        description: formData.description,
+        host_id: user?.id
+      });
+      
+      // Extract the link from the response
+      const link = result?.callLink || result?.call?.call_link;
+      if (link) {
+        setCreatedLink(link);
+      }
+    } catch (error) {
+      console.error("Failed to create call:", error);
+    }
   };
 
+  const handleCopyLink = async () => {
+    if (createdLink && navigator.clipboard) {
+      await navigator.clipboard.writeText(createdLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleReset = () => {
+    setFormData({ title: "", description: "" });
+    setCreatedLink(null);
+    setCopied(false);
+  };
+
+  // If link is created, show success screen
+  if (createdLink) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+        {/* Backdrop */}
+        <div 
+          className="absolute inset-0 bg-[#050505]/90 backdrop-blur-md animate-in fade-in duration-300"
+          onClick={onClose}
+        />
+
+        {/* Success Container */}
+        <div className="w-full max-w-lg bg-slate-900/60 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] shadow-2xl relative z-10 animate-in fade-in zoom-in duration-500 overflow-hidden">
+          {/* Decorative Glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50" />
+          
+          {/* Header */}
+          <div className="p-8 pb-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-500/20">
+                <Check size={24} className="text-emerald-500" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white tracking-tight">Link Created!</h2>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-0.5">Ready to share</p>
+              </div>
+            </div>
+            <button 
+              type="button"
+              onClick={onClose}
+              className="p-2.5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl transition-all"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="p-8 pt-4 space-y-6">
+            {/* Link Display */}
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                Your Call Link
+              </label>
+              <div className="bg-white/5 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-mono text-sm truncate">{createdLink}</p>
+                </div>
+                <button
+                  onClick={handleCopyLink}
+                  className={`p-3 rounded-xl transition-all shrink-0 ${
+                    copied 
+                      ? "bg-emerald-500 text-white" 
+                      : "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                  }`}
+                >
+                  {copied ? <Check size={18} /> : <Copy size={18} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleReset}
+                className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl transition-all active:scale-[0.98]"
+              >
+                Create Another
+              </button>
+              <button
+                onClick={() => window.open(createdLink, '_blank')}
+                className="flex-1 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold rounded-2xl transition-all active:scale-[0.98] shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2"
+              >
+                Open Call
+                <ExternalLink size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 sm:p-6 overflow-hidden pt-[94px] sm:pt-6">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-[#050505]/90 backdrop-blur-md animate-in fade-in duration-300"
@@ -54,7 +160,7 @@ const CallLinkForm = ({ onClose }) => {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-white tracking-tight">Create Call</h2>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-0.5">Permanent Link</p>
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-0.5">Short Link</p>
             </div>
           </div>
           <button 
@@ -131,3 +237,4 @@ const CallLinkForm = ({ onClose }) => {
 };
 
 export default CallLinkForm;
+

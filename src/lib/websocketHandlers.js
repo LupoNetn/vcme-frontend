@@ -61,19 +61,33 @@ export const handleInitiatorRes = async (payload) => {
     const user = useAuthStore.getState().user
     const userId = user?.id
     
-    // In this version, target_id is the first person in the room (the target for the newcomer)
-    const targetId = payload.target_id;
-
-    if (!targetId || targetId === userId) {
-        console.log("I am the initiator or alone, waiting for others...");
+    console.log("📋 Initiator response received:", payload);
+    
+    // Get list of existing participants to connect to
+    const existingParticipants = payload.existing_participants || [];
+    
+    if (existingParticipants.length === 0) {
+        console.log("👤 I am alone in the room, waiting for others...");
         return;
     }
-
-    console.log("Connecting to target:", targetId);
+    
+    console.log(`🔗 Connecting to ${existingParticipants.length} participant(s):`, existingParticipants);
+    
+    // For now, we'll implement 1-to-1 connections (mesh)
+    // Connect to the first participant (in a full mesh, you'd loop through all)
+    const targetId = existingParticipants[0];
+    
+    if (!targetId || targetId === userId) {
+        console.log("❌ Invalid target or target is self");
+        return;
+    }
+    
+    console.log("🎯 Creating offer for:", targetId);
     useCallStore.getState().setTargetUserId(targetId)
     
     const offer = await createOffer()
     if (offer) {
+        console.log("📤 Sending offer to:", targetId);
         useWebsocketStore.getState().send({
             event_type: "offer",
             payload: {
@@ -82,16 +96,21 @@ export const handleInitiatorRes = async (payload) => {
                 data: offer
             }
         })
+    } else {
+        console.error("❌ Failed to create offer");
     }
 }
 
 export const handleOffer = async (payload) => {
-    console.log("Received offer from:", payload.sender_id);
+    console.log("📥 Received offer from:", payload.sender_id);
+    console.log("📋 Offer payload:", payload);
+    
     // Set target so our ICE candidates go to the right person
     useCallStore.getState().setTargetUserId(payload.sender_id)
 
     const answer = await createAnswer(payload.data)
     if (answer) {
+        console.log("📤 Sending answer to:", payload.sender_id);
         useWebsocketStore.getState().send({
             event_type: "answer",
             payload: {
@@ -100,15 +119,62 @@ export const handleOffer = async (payload) => {
                 data: answer
             }
         })
+    } else {
+        console.error("❌ Failed to create answer");
     }
 }
 
 export const handleAnswer = async (payload) => {
-    console.log("Received answer from:", payload.sender_id);
+    console.log("📥 Received answer from:", payload.sender_id);
     await applyAnswer(payload.data)
+    console.log("✅ Answer applied successfully");
 }
 
 export const handleIceCandidate = async (payload) => {
-    console.log("Received ICE candidate from:", payload.sender_id);
+    console.log("📥 Received ICE candidate from:", payload.sender_id, "Type:", payload.data?.type);
     await addIceCandidate(payload.data)
+}
+
+export const handleCallTerminated = (payload) => {
+    console.log("⚠️ Call terminated by host:", payload.host_id);
+    
+    // Show alert to user
+    alert(payload.message || "The host has ended the call");
+    
+    // Clean up and navigate home
+    useCallStore.setState({
+        isWaitingRoom: false,
+        isParticipant: false,
+        currentCall: null,
+        newUserInWaitlist: [],
+        callParticipants: []
+    });
+    
+    resetPeerConnection();
+    useVideoStore.getState().clearStreams();
+    
+    // Navigate to home after a brief delay
+    setTimeout(() => {
+        window.location.href = '/';
+    }, 1500);
+}
+
+export const handleParticipantLeft = (payload) => {
+    console.log("👋 Participant left:", payload.participant_id);
+    
+    // Update participant list
+    const currentParticipants = useCallStore.getState().callParticipants;
+    const updatedParticipants = currentParticipants.filter(id => id !== payload.participant_id);
+    
+    useCallStore.setState({
+        callParticipants: updatedParticipants
+    });
+    
+    // If the participant who left was our peer, clear remote stream
+    const targetUserId = useCallStore.getState().targetUserId;
+    if (targetUserId === payload.participant_id) {
+        console.log("Our peer left, clearing remote stream");
+        useVideoStore.getState().setRemoteStream(null);
+        useCallStore.setState({ targetUserId: null });
+    }
 }

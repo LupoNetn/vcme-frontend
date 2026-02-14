@@ -39,14 +39,28 @@ const useCall = () => {
             if (res.status === 200) {
                 setIsLoading(false)
                 setError(null)
+                
+                // Extract the call link from response
+                const callLink = res.data?.callLink || res.data?.call?.call_link
+                
                 // Refresh the calls list after creation
                 await listCalls(host_id)
-                toast.success("Call created successfully")
+                
+                toast.success("Call link created! Link copied to clipboard.")
+                
+                // Copy link to clipboard if available
+                if (callLink && navigator.clipboard) {
+                    await navigator.clipboard.writeText(callLink)
+                }
+                
+                // Return the created call data including the link
+                return res.data
             }    
         } catch (error) {
             setIsLoading(false)
             setError(error.response?.data?.error || "Failed to create call")
             toast.error(error.response?.data?.error || "Failed to create call")
+            throw error
         }
     }
 
