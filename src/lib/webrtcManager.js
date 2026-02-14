@@ -87,14 +87,14 @@ const setupPeerEvents = (pc) => {
         // Handle different ICE connection states
         switch (pc.iceConnectionState) {
             case 'connected':
-                console.log("✅ ICE Connection established successfully");
+                console.log("ICE Connection established successfully");
                 break;
             case 'disconnected':
-                console.warn("⚠️ ICE Connection temporarily disconnected");
+                console.warn("ICE Connection temporarily disconnected");
                 // Connection may recover by itself
                 break;
             case 'failed':
-                console.error("❌ ICE Connection failed - attempting restart");
+                console.error("ICE Connection failed - attempting restart");
                 // Try ICE restart
                 pc.restartIce();
                 break;
@@ -113,13 +113,13 @@ const setupPeerEvents = (pc) => {
         
         switch (pc.connectionState) {
             case 'connected':
-                console.log("✅ Peer connection established");
+                console.log("Peer connection established");
                 break;
             case 'disconnected':
-                console.warn("⚠️ Peer connection disconnected");
+                console.warn("Peer connection disconnected");
                 break;
             case 'failed':
-                console.error("❌ Peer connection failed");
+                console.error("Peer connection failed");
                 break;
         }
     };

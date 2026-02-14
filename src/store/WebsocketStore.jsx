@@ -135,6 +135,7 @@ const useWebsocketStore = create((set,get) => ({
         // Wait if the socket is still connecting
         if (socket.readyState === WebSocket.CONNECTING) {
             console.log("WebSocket is connecting, waiting to send...")
+            toast.info("Connecting, waiting to send...", { id: "ws_connecting" })
             await new Promise((resolve, reject) => {
                 const onOpen = () => {
                     socket.removeEventListener('open', onOpen);
