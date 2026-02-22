@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { Sidebar, BottomNav } from './Navigation';
 import Navbar from './Navbar';
 import { Outlet } from 'react-router-dom';
@@ -14,7 +14,7 @@ const AppLayout = () => {
   const socket = useWebsocketStore((state) => state.socket)
   const connect = useWebsocketStore((state) => state.connect)
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!socket) {
       connect()
     }

@@ -14,7 +14,7 @@ const useWebsocketStore = create((set,get) => ({
         //prevent multiple connections
         if(get().socket) return
 
-        const token = localStorage.getItem("token")
+        const token = localStorage.getItem("accessToken")
         const ws = new WebSocket(`${WS_URL}/ws/?token=${token}`)
 
         // Pre-set socket to prevent duplicate connection attempts

@@ -16,7 +16,8 @@ const useAuthStore = create(
                 try {
                     const res = await api.post("/auth/login", data)
                     if (res.data.accessToken) {
-                        localStorage.setItem("token", res.data.accessToken)
+                        localStorage.setItem("accessToken", res.data.accessToken)
+                        localStorage.setItem("refreshToken", res.data.refreshToken)
                     }
                     set({ 
                         user: res.data.user, 
@@ -38,7 +39,8 @@ const useAuthStore = create(
                 try {
                     const res = await api.post("/auth/signup", data)
                     if (res.data.accessToken) {
-                        localStorage.setItem("token", res.data.accessToken)
+                        localStorage.setItem("accessToken", res.data.accessToken)
+                        localStorage.setItem("refreshToken", res.data.refreshToken)
                     }
                     return res
                 } catch (error) {
@@ -50,7 +52,8 @@ const useAuthStore = create(
             },
             
             logout: () => {
-                localStorage.removeItem("token")
+                localStorage.removeItem("accessToken")
+                localStorage.removeItem("refreshToken")
                 set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false })
             },
         }),

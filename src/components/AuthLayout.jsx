@@ -6,9 +6,9 @@ const AuthLayout = () => {
     const user = useAuthStore((state) => state.user)
     console.log(user);
 
-    if (user) {
-        return <Navigate to="/" />
-    }
+    // if (user) {
+    //     return <Navigate to="/" />
+    // }
 
   return (
     <div className="min-h-screen w-full flex bg-[#0f172a] text-white overflow-hidden relative">
