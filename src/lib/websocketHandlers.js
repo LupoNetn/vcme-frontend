@@ -131,7 +131,8 @@ export const handleAnswer = async (payload) => {
 }
 
 export const handleIceCandidate = async (payload) => {
-    console.log("📥 Received ICE candidate from:", payload.sender_id, "Type:", payload.data?.type);
+    const candidateType = payload.data?.candidate?.split(' ')[7] || 'unknown';
+    console.log(`📥 Received ICE candidate [${candidateType}] from:`, payload.sender_id);
     await addIceCandidate(payload.data)
 }
 

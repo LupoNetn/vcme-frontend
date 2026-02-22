@@ -294,8 +294,8 @@ const CallRoom = () => {
       </div>
 
       {showEmojiPanel && (
-        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 p-2 bg-black/60 backdrop-blur-3xl rounded-[2rem] border border-white/10 z-40 flex items-center gap-1 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] animate-in fade-in zoom-in-95 slide-in-from-bottom-10 duration-500 ease-out">
-          <div className="flex items-center gap-0.5 px-1">
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 w-[90vw] max-w-fit p-1.5 md:p-2 bg-neutral-900/80 backdrop-blur-2xl rounded-[1.5rem] md:rounded-[2.5rem] border border-white/20 z-40 shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in-95 slide-in-from-bottom-6 duration-300">
+          <div className="flex flex-wrap items-center justify-center gap-0.5 md:gap-1">
             {emoji.map((emojiChar, index) => (
               <button
                 key={index}
@@ -311,16 +311,15 @@ const CallRoom = () => {
                   send(payload);
                   setShowEmojiPanel(false);
                 }}
-                className="w-12 h-12 flex items-center justify-center text-2xl rounded-full hover:bg-white/10 hover:scale-[1.3] hover:-translate-y-2 transition-all duration-300 ease-spring active:scale-95"
-                title={emojiChar}
+                className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-xl md:text-2xl rounded-full hover:bg-white/10 transition-all duration-200 active:scale-125 origin-center"
               >
-                <span className="drop-shadow-lg">{emojiChar}</span>
+                <span className="drop-shadow-md">{emojiChar}</span>
               </button>
             ))}
           </div>
           
-          {/* Subtle indicator triangle */}
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-black/60 border-r border-b border-white/10 rotate-45 backdrop-blur-3xl" />
+          {/* Subtle indicator triangle - Hidden on very small screens if it looks weird */}
+          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-neutral-900/80 border-r border-b border-white/20 rotate-45 backdrop-blur-2xl hidden md:block" />
         </div>
       )}
 
