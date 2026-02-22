@@ -1,12 +1,33 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, NavLink } from "react-router-dom";
-import { Mic, Video, PhoneOff, MicOff, VideoOff, User } from "lucide-react";
+import { Mic, Video, PhoneOff, MicOff, VideoOff, User, Smile } from "lucide-react";
 import WaitingRoomApproval from "../components/WaitingRoomApproval";
 import useWebsocketStore from "../store/WebsocketStore.jsx";
 import useAuthStore from "../store/AuthStore";
 import useCallStore from "../store/CallStore";
 import useVideoStore from "../store/VideoStore.js";
 import useCall from "../hooks/useCall";
+
+const FloatingEmoji = ({ emoji, onComplete }) => {
+  // We only randomize the horizontal starting point (40% to 60%)
+  const [randomLeft] = useState(40 + Math.random() * 20);
+
+  useEffect(() => {
+    const timer = setTimeout(onComplete, 2500); // Wait for the 2.5s CSS animation
+    return () => clearTimeout(timer);
+  }, [onComplete]);
+
+  return (
+    <div 
+      className="fixed bottom-32 pointer-events-none select-none z-[100] animate-emoji-simple text-6xl"
+      style={{ left: `${randomLeft}%` }}
+    >
+      <span className="drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)] block">
+        {emoji}
+      </span>
+    </div>
+  );
+};
 
 const CallRoom = () => {
   const params = useParams();
@@ -16,6 +37,8 @@ const CallRoom = () => {
   const user = useAuthStore((state) => state.user);
   const currentCall = useCallStore((state) => state.currentCall);
   const callParticipants = useCallStore((state) => state.callParticipants);
+  const activeEmojis = useCallStore((state) => state.activeEmojis);
+  const removeEmoji = useCallStore((state) => state.removeEmoji);
   const localStream = useVideoStore((state) => state.localStream);
   const remoteStream = useVideoStore((state) => state.remoteStream);
   const { findCallByLink } = useCall();
@@ -26,6 +49,12 @@ const CallRoom = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [startTime, setStartTime] = useState(null);
+  const [showEmojiPanel, setShowEmojiPanel] = useState(false);
+
+  const emoji = [
+    "😀", "😂", "🤔", "😎", "😭", "😡", "👍", "👎",
+    "❤️", "🔥",
+  ];
 
 
 
@@ -83,6 +112,10 @@ const CallRoom = () => {
       }
     }
   };
+
+  const toggleEmojiPanel = () => {
+    setShowEmojiPanel(prev => !prev);
+  }
 
   const getCallInitiator = () => {
     console.log("heyj");
@@ -250,7 +283,55 @@ const CallRoom = () => {
         >
           {isVideoOff ? <VideoOff size={20} /> : <Video size={20} />}
         </button>
+
+        <button 
+         onClick={toggleEmojiPanel}
+         className={`p-3 rounded-full transition-all duration-300 active:scale-90 ${showEmojiPanel ? "bg-white text-black scale-110 shadow-[0_0_20px_rgba(255,255,255,0.3)]" : "bg-white/10 text-white hover:bg-white/20"}`}
+         title="Send Emoji"
+        >
+          <Smile size={20} className={showEmojiPanel ? "animate-bounce" : ""} />
+        </button>
       </div>
+
+      {showEmojiPanel && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 p-2 bg-black/60 backdrop-blur-3xl rounded-[2rem] border border-white/10 z-40 flex items-center gap-1 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] animate-in fade-in zoom-in-95 slide-in-from-bottom-10 duration-500 ease-out">
+          <div className="flex items-center gap-0.5 px-1">
+            {emoji.map((emojiChar, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  const payload = {
+                    event_type: "send_emoji",
+                    payload: {
+                      call_id: currentCall,
+                      participant_id: user.id,
+                      emoji: emojiChar,
+                    },
+                  };
+                  send(payload);
+                  setShowEmojiPanel(false);
+                }}
+                className="w-12 h-12 flex items-center justify-center text-2xl rounded-full hover:bg-white/10 hover:scale-[1.3] hover:-translate-y-2 transition-all duration-300 ease-spring active:scale-95"
+                title={emojiChar}
+              >
+                <span className="drop-shadow-lg">{emojiChar}</span>
+              </button>
+            ))}
+          </div>
+          
+          {/* Subtle indicator triangle */}
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-black/60 border-r border-b border-white/10 rotate-45 backdrop-blur-3xl" />
+        </div>
+      )}
+
+      {/* Floating Emojis Broadcast Area */}
+      {activeEmojis.map((emoji) => (
+        <FloatingEmoji 
+          key={emoji.id} 
+          emoji={emoji.emoji} 
+          onComplete={() => removeEmoji(emoji.id)} 
+        />
+      ))}
     </div>
   );
 };

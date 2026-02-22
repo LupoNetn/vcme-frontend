@@ -2,7 +2,7 @@ import React from "react"
 import { create } from "zustand"
 import { toast } from "react-hot-toast"
 import { Loader2, CheckCircle2, XCircle, Bell, LogIn, LogOut } from "lucide-react"
-import { handleAcceptedIntoRoom, handleHostJoinedRoom, handleLeftRoom, handleNewParticipantRequest, handleWaitingRoom, handleDeclinedFromRoom, handleInitiatorRes, handleAnswer, handleOffer, handleIceCandidate, handleCallTerminated, handleParticipantLeft } from "../lib/websocketHandlers"
+import { handleAcceptedIntoRoom, handleHostJoinedRoom, handleLeftRoom, handleNewParticipantRequest, handleWaitingRoom, handleDeclinedFromRoom, handleInitiatorRes, handleAnswer, handleOffer, handleIceCandidate, handleCallTerminated, handleParticipantLeft, handleEmojiReceived } from "../lib/websocketHandlers"
 import { WS_URL } from "../config"
 
 
@@ -101,6 +101,9 @@ const useWebsocketStore = create((set,get) => ({
                         icon: <LogOut className="w-4 h-4 text-slate-500" />
                     })
                     handleParticipantLeft(data.Payload)
+                    break;
+                case "emoji_received":
+                    handleEmojiReceived(data.Payload)
                     break;
                 case "error":
                     toast.error(data.Payload.message || "An error occurred", { 

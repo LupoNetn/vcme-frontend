@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -6,31 +6,46 @@
   --color-brand-secondary: #334155; /* Slate */
   --color-bg-deep: #0f172a; /* Deep Slate Blue/Black */
   --color-bg-card: #1e293b; /* Slate Gray */
+
+  --animate-shake: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
   
-  --animate-shake: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  --transition-timing-function-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 @keyframes shake {
-  10%, 90% { transform: translate3d(-1px, 0, 0); }
-  20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-  40%, 60% { transform: translate3d(4px, 0, 0); }
+  10%,
+  90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+  20%,
+  80% {
+    transform: translate3d(2px, 0, 0);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+  40%,
+  60% {
+    transform: translate3d(4px, 0, 0);
+  }
 }
 
 body {
-  font-family: 'Outfit', sans-serif;
+  font-family: "Outfit", sans-serif;
   background-color: var(--color-bg-deep);
   color: #f1f1f1;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden; /* Prevent horizontal scrollbars */
-  
+
   /* Hide scrollbar for Chrome, Safari and Opera */
   &::-webkit-scrollbar {
     display: none;
   }
   /* Hide scrollbar for IE, Edge and Firefox */
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 
 /* Global scrollbar hiding for all elements */
@@ -70,16 +85,55 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideInFromBottom {
-  from { transform: translateY(1rem); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(1rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes zoomIn {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Simplfied Emoji Animation: One keyframe to rule them all */
+@keyframes simpleFloat {
+  0% { 
+    transform: translateY(0) translateX(0) scale(0); 
+    opacity: 0; 
+  }
+  20% { 
+    transform: translateY(-50px) translateX(15px) scale(1.2); 
+    opacity: 1; 
+  }
+  50% { 
+    transform: translateY(-150px) translateX(-15px) scale(1); 
+  }
+  100% { 
+    transform: translateY(-400px) translateX(10px) scale(0.8); 
+    opacity: 0; 
+  }
+}
+
+.animate-emoji-simple {
+  animation: simpleFloat 2.5s ease-out forwards;
 }

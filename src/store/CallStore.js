@@ -31,6 +31,18 @@ const useCallStore = create((set) => ({
     setStreams: (streams) => set({ streams }),
     setCallParticipants: (participants) => set({ callParticipants: participants }),
     setCallWaitlist: (waitlist) => set({ CallWaitlist: waitlist }),
+
+    // Emoji broadcast state
+    activeEmojis: [],
+    addEmoji: (emojiData) => set((state) => ({
+        activeEmojis: [...state.activeEmojis, {
+            id: Date.now() + Math.random(),
+            ...emojiData
+        }]
+    })),
+    removeEmoji: (id) => set((state) => ({
+        activeEmojis: state.activeEmojis.filter(e => e.id !== id)
+    })),
 }));
 
 export default useCallStore;

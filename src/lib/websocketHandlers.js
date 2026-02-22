@@ -178,3 +178,8 @@ export const handleParticipantLeft = (payload) => {
         useCallStore.setState({ targetUserId: null });
     }
 }
+
+export const handleEmojiReceived = (payload) => {
+    console.log("Emoji received:", payload.emoji);
+    useCallStore.getState().addEmoji(payload);
+}
