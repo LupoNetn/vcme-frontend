@@ -4,10 +4,10 @@
 
 **Symptom:**
 
-- ✅ Works when testing with your phone + laptop on same network
-- ❌ Doesn't work when testing with a friend
-- ✅ Local stream shows
-- ❌ Remote stream doesn't appear
+- Works when testing with your phone + laptop on same network
+- Doesn't work when testing with a friend
+- Local stream shows
+- Remote stream doesn't appear
 
 **Root Cause:**
 This is a classic **WebRTC signaling issue**, not an ICE/network problem. The issue was in the `get_initiator` logic that determines who should create offers to whom.
@@ -426,3 +426,6 @@ With a friend:
 **The core issue is fixed! You should now see remote streams when calling your friend. 🎉**
 
 If you still have issues, the enhanced logging will help identify exactly where the flow breaks.
+
+errors
+293bc9875366 Type: undefined index-CIORNL-z.js:194 Received message from websocket {EventType: 'ice_candidate', Payload: {…}} index-CIORNL-z.js:194 📥 Received ICE candidate from: 5d4e0f1c-ec5f-4d36-aa09-293bc9875366 Type: undefined 4 index-CIORNL-z.js:194 Added ICE candidate successfully index-CIORNL-z.js:194 ICE Connection State: disconnected index-CIORNL-z.js:194 ICE Connection temporarily disconnected index-CIORNL-z.js:194 Connection State: failed index-CIORNL-z.js:194 Peer connection failed ﻿
