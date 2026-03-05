@@ -14,18 +14,27 @@ export const setUpLocalMedia = async () => {
   }
 };
 
+export const setUpScreenMedia = async () => {
+  try {
+    const screen = await navigator.mediaDevices.getDisplayMedia({
+      
+    })
+  } catch (error) {
+    
+  }
+}
+
 // ─────────────────────────────────────────────────────────────
-// FIX #1: Replace unreliable free OpenRelay TURN with
+// FIX #1: Replaced unreliable free OpenRelay TURN with
 //         Metered.ca's free STUN + a set of well-known public
 //         STUN servers as the first line of defence, and use
 //         Metered TURN credentials that are actually live.
 //
-//         IMPORTANT FOR PRODUCTION: sign up for a free account
-//         at https://www.metered.ca/tools/openrelay/ and replace
-//         the placeholder credential below with your own.
+//         IMPORTANT FOR PRODUCTION: signed up for a free account
+//         at https://www.metered.ca/tools/openrelay/ 
 //         Free tier gives 50 GB/mo — more than enough to start.
 //
-//         Alternatively, drop in Twilio TURN credentials via
+//         Alternative: drop in Twilio TURN credentials via
 //         their free trial (https://www.twilio.com/try-twilio).
 // ─────────────────────────────────────────────────────────────
 const METERED_API_KEY = import.meta.env.VITE_METERED_API_KEY || "";
@@ -51,11 +60,11 @@ const getIceServers = async () => {
         const servers = await res.json();
         cachedIceServers = servers;
         cacheExpiry = Date.now() + 12 * 60 * 60 * 1000; // 12 hours
-        console.log("✅ Fetched fresh TURN credentials from Metered");
+        console.log(" Fetched fresh TURN credentials from Metered");
         return servers;
       }
     } catch (e) {
-      console.warn("⚠️  Could not fetch Metered TURN credentials, falling back to static config", e);
+      console.warn("  Could not fetch Metered TURN credentials, falling back to static config", e);
     }
   }
 
@@ -117,20 +126,20 @@ const addLocalTracks = () => {
   localStream.getTracks().forEach((track) => {
     const alreadyAdded = pc.getSenders().some((s) => s.track === track);
     if (!alreadyAdded) {
-      console.log("➕ Adding local track:", track.kind);
+      console.log("Adding local track:", track.kind);
       pc.addTrack(track, localStream);
     }
   });
 };
 
 const processQueuedCandidates = async () => {
-  console.log(`♻️  Processing ${candidateQueue.length} queued ICE candidates`);
+  console.log(`  Processing ${candidateQueue.length} queued ICE candidates`);
   while (candidateQueue.length > 0) {
     const candidate = candidateQueue.shift();
     try {
       await pc.addIceCandidate(new RTCIceCandidate(candidate));
     } catch (e) {
-      console.warn("⚠️  Failed to add queued ICE candidate:", e);
+      console.warn("  Failed to add queued ICE candidate:", e);
     }
   }
 };
@@ -142,7 +151,7 @@ const processQueuedCandidates = async () => {
 const wireEvents = (connection) => {
   connection.ontrack = (event) => {
     const [remoteStream] = event.streams;
-    console.log("🎥 RECEIVED REMOTE STREAM:", remoteStream.id);
+    console.log(" RECEIVED REMOTE STREAM:", remoteStream.id);
     useVideoStore.getState().setRemoteStream(remoteStream);
   };
 
@@ -150,7 +159,7 @@ const wireEvents = (connection) => {
     if (event.candidate) {
       const callId = useCallStore.getState().currentCall;
       const targetId = useCallStore.getState().targetUserId;
-      console.log(`📤 Sending ICE candidate [${event.candidate.type}] to:`, targetId);
+      console.log(` Sending ICE candidate [${event.candidate.type}] to:`, targetId);
       useWebsocketStore.getState().send({
         event_type: "ice_candidate",
         payload: {
@@ -160,7 +169,7 @@ const wireEvents = (connection) => {
         },
       });
     } else {
-      console.log("✅ All ICE candidates gathered");
+      console.log(" All ICE candidates gathered");
     }
   };
 
@@ -169,12 +178,12 @@ const wireEvents = (connection) => {
   // (create + send a new offer). We do that here automatically.
   connection.oniceconnectionstatechange = () => {
     const state = connection.iceConnectionState;
-    console.log("🧊 ICE state:", state);
+    console.log(" ICE state:", state);
 
     clearTimeout(iceRestartTimeout);
 
     if (state === "failed") {
-      console.error("❌ ICE failed — restarting in 2 s");
+      console.error(" ICE failed — restarting in 2 s");
       iceRestartTimeout = setTimeout(async () => {
         // Only restart if this is still the active connection
         if (connection !== pc) return;
@@ -193,7 +202,7 @@ const wireEvents = (connection) => {
               event_type: "offer",
               payload: { call_id: callId, target_id: targetId, data: offer },
             });
-            console.log("🔄 ICE restart offer sent to:", targetId);
+            console.log(" ICE restart offer sent to:", targetId);
           }
         } catch (e) {
           console.error("ICE restart failed:", e);
@@ -205,23 +214,23 @@ const wireEvents = (connection) => {
       // Give it 5 s to self-heal before escalating to a restart
       iceRestartTimeout = setTimeout(() => {
         if (connection.iceConnectionState === "disconnected") {
-          console.warn("⚠️  Still disconnected after 5 s, triggering ICE restart");
+          console.warn("  Still disconnected after 5 s, triggering ICE restart");
           connection.dispatchEvent(new Event("iceconnectionstatechange")); // re-run handler
         }
       }, 5000);
     }
 
     if (state === "connected" || state === "completed") {
-      console.log("✅ ICE connection established!");
+      console.log(" ICE connection established!");
     }
   };
 
   connection.onconnectionstatechange = () => {
-    console.log("🔗 Connection state:", connection.connectionState);
+    console.log(" Connection state:", connection.connectionState);
   };
 
   connection.onsignalingstatechange = () => {
-    console.log("📡 Signaling state:", connection.signalingState);
+    console.log(" Signaling state:", connection.signalingState);
   };
 };
 
@@ -242,7 +251,7 @@ export const initPeerConnection = async () => {
   candidateQueue = [];
   isRemoteDescriptionSet = false;
   wireEvents(pc);
-  console.log("🆕 RTCPeerConnection created");
+  console.log(" RTCPeerConnection created");
   return pc;
 };
 
@@ -253,10 +262,10 @@ export const createOffer = async () => {
   try {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    console.log("📝 Created and set local offer");
+    console.log(" Created and set local offer");
     return offer;
   } catch (error) {
-    console.error("❌ Error creating offer:", error);
+    console.error(" Error creating offer:", error);
   }
 };
 
@@ -267,7 +276,7 @@ export const createAnswer = async (offer) => {
   try {
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
     isRemoteDescriptionSet = true;
-    console.log("📝 Set remote offer, creating answer...");
+    console.log(" Set remote offer, creating answer...");
 
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
@@ -275,7 +284,7 @@ export const createAnswer = async (offer) => {
     await processQueuedCandidates();
     return answer;
   } catch (error) {
-    console.error("❌ Error creating answer:", error);
+    console.error(" Error creating answer:", error);
   }
 };
 
@@ -286,17 +295,17 @@ export const handleAnswer = async (answer) => {
     // Guard against setting remote description when signalingState is wrong
     if (pc.signalingState !== "have-local-offer") {
       console.warn(
-        `⚠️  Ignoring answer in unexpected signaling state: ${pc.signalingState}`
+        `  Ignoring answer in unexpected signaling state: ${pc.signalingState}`
       );
       return;
     }
     await pc.setRemoteDescription(new RTCSessionDescription(answer));
     isRemoteDescriptionSet = true;
-    console.log("✅ Remote answer set successfully");
+    console.log(" Remote answer set successfully");
 
     await processQueuedCandidates();
   } catch (error) {
-    console.error("❌ Error setting remote answer:", error);
+    console.error(" Error setting remote answer:", error);
   }
 };
 
@@ -304,7 +313,7 @@ export const addIceCandidate = async (candidate) => {
   if (!candidate) return;
 
   if (!isRemoteDescriptionSet || !pc) {
-    console.log("📦 Queuing ICE candidate (remote desc not set yet)");
+    console.log(" Queuing ICE candidate (remote desc not set yet)");
     candidateQueue.push(candidate);
     return;
   }
@@ -314,13 +323,13 @@ export const addIceCandidate = async (candidate) => {
   } catch (error) {
     // Benign error when connection is already closed
     if (!error.message.includes("closed")) {
-      console.error("❌ Error adding ICE candidate:", error);
+      console.error(" Error adding ICE candidate:", error);
     }
   }
 };
 
 export const resetPeerConnection = () => {
-  console.log("🔁 Resetting peer connection");
+  console.log(" Resetting peer connection");
   clearTimeout(iceRestartTimeout);
 
   if (pc) {

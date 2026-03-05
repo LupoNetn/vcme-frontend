@@ -32,7 +32,7 @@ const useWebsocketStore = create((set,get) => ({
             const data = JSON.parse(event.data)
             console.log("Received message from websocket", data)
 
-            // Dynamic notifications for incoming events (Big Tech style)
+            // Dynamic notifications for incoming events
             switch (data.EventType) {
                 case "waiting_room":
                     toast.success("Joined waiting room. Waiting for host...", { 

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { X, Video, Type, AlignLeft, Plus, Copy, Check, ExternalLink } from "lucide-react";
 import useCall from "../hooks/useCall";
 import useAuthStore from "../store/AuthStore";
+import toast from "react-hot-toast";
 
 /**
  * CallLinkForm - Premium UI for creating a new meeting link
@@ -40,6 +41,7 @@ const CallLinkForm = ({ onClose }) => {
         setCreatedLink(link);
       }
     } catch (error) {
+      toast.error("Something went wrong when trying to create a call link")
       console.error("Failed to create call:", error);
     }
   };

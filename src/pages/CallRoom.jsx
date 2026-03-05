@@ -48,7 +48,6 @@ const CallRoom = () => {
 
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
-  const [startTime, setStartTime] = useState(null);
   const [showEmojiPanel, setShowEmojiPanel] = useState(false);
 
   const emoji = [
@@ -118,7 +117,7 @@ const CallRoom = () => {
   }
 
   const getCallInitiator = () => {
-    console.log("heyj");
+    console.log("testing");
     const payload = {
       event_type: "get_initiator",
       payload: {
@@ -258,7 +257,7 @@ const CallRoom = () => {
         </div>
       </div>
 
-      {/* Bottom Controls - Compact & Smaller */}
+      {/* Bottom Controls */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 bg-black/40 backdrop-blur-xl rounded-full border border-white/10 z-30 flex items-center gap-6 shadow-2xl">
         <button
           onClick={toggleAudio}

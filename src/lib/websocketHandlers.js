@@ -1,3 +1,4 @@
+import toast from "react-hot-toast"
 import useAuthStore from "../store/AuthStore"
 import useCallStore from "../store/CallStore"
 import useVideoStore from "../store/VideoStore"
@@ -54,40 +55,40 @@ export const handleDeclinedFromRoom = (payload) => {
         currentCall: null,
         newUserInWaitlist: []
     })
-    alert(payload.message || "Your request to join was declined");
 }
 
 export const handleInitiatorRes = async (payload) => {
     const user = useAuthStore.getState().user
     const userId = user?.id
     
-    console.log("📋 Initiator response received:", payload);
+    console.log(" Initiator response received:", payload);
     
     // Get list of existing participants to connect to
     const existingParticipants = payload.existing_participants || [];
     
     if (existingParticipants.length === 0) {
-        console.log("👤 I am alone in the room, waiting for others...");
+        console.log(" I am alone in the room, waiting for others...");
+        toast.error("no one to connect with yet, please hold on...")
         return;
     }
     
-    console.log(`🔗 Connecting to ${existingParticipants.length} participant(s):`, existingParticipants);
+    console.log(` Connecting to ${existingParticipants.length} participant(s):`, existingParticipants);
     
     // For now, we'll implement 1-to-1 connections (mesh)
     // Connect to the first participant (in a full mesh, you'd loop through all)
     const targetId = existingParticipants[0];
     
     if (!targetId || targetId === userId) {
-        console.log("❌ Invalid target or target is self");
+        console.log(" Invalid target or target is self");
         return;
     }
     
-    console.log("🎯 Creating offer for:", targetId);
+    console.log(" Creating offer for:", targetId);
     useCallStore.getState().setTargetUserId(targetId)
     
     const offer = await createOffer()
     if (offer) {
-        console.log("📤 Sending offer to:", targetId);
+        console.log(" Sending offer to:", targetId);
         useWebsocketStore.getState().send({
             event_type: "offer",
             payload: {
@@ -97,20 +98,20 @@ export const handleInitiatorRes = async (payload) => {
             }
         })
     } else {
-        console.error("❌ Failed to create offer");
+        console.error(" Failed to create offer");
     }
 }
 
 export const handleOffer = async (payload) => {
-    console.log("📥 Received offer from:", payload.sender_id);
-    console.log("📋 Offer payload:", payload);
+    console.log("Received offer from:", payload.sender_id);
+    console.log("Offer payload:", payload);
     
     // Set target so our ICE candidates go to the right person
     useCallStore.getState().setTargetUserId(payload.sender_id)
 
     const answer = await createAnswer(payload.data)
     if (answer) {
-        console.log("📤 Sending answer to:", payload.sender_id);
+        console.log("Sending answer to:", payload.sender_id);
         useWebsocketStore.getState().send({
             event_type: "answer",
             payload: {
@@ -120,24 +121,24 @@ export const handleOffer = async (payload) => {
             }
         })
     } else {
-        console.error("❌ Failed to create answer");
+        console.error(" Failed to create answer");
     }
 }
 
 export const handleAnswer = async (payload) => {
-    console.log("📥 Received answer from:", payload.sender_id);
+    console.log(" Received answer from:", payload.sender_id);
     await applyAnswer(payload.data)
-    console.log("✅ Answer applied successfully");
+    console.log(" Answer applied successfully");
 }
 
 export const handleIceCandidate = async (payload) => {
     const candidateType = payload.data?.candidate?.split(' ')[7] || 'unknown';
-    console.log(`📥 Received ICE candidate [${candidateType}] from:`, payload.sender_id);
+    console.log(` Received ICE candidate [${candidateType}] from:`, payload.sender_id);
     await addIceCandidate(payload.data)
 }
 
 export const handleCallTerminated = (payload) => {
-    console.log("⚠️ Call terminated by host:", payload.host_id);
+    console.log(" Call terminated by host:", payload.host_id);
     
     // Show alert to user
     alert(payload.message || "The host has ended the call");
@@ -161,7 +162,7 @@ export const handleCallTerminated = (payload) => {
 }
 
 export const handleParticipantLeft = (payload) => {
-    console.log("👋 Participant left:", payload.participant_id);
+    console.log(" Participant left:", payload.participant_id);
     
     // Update participant list
     const currentParticipants = useCallStore.getState().callParticipants;
