@@ -400,18 +400,19 @@ const CallRoom = () => {
         )}
       </div>
 
-      {/* Top Bar - Minimal Info */}
-      <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/60 to-transparent z-10 flex items-center justify-between pointer-events-none">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
-            V
-          </div>
-          <div>
-            <p className="text-white/90 text-xs font-mono bg-black/20 px-2 py-1 rounded-full backdrop-blur-sm border border-white/5">
+      {/* Top Bar - Minimal Info & Chat Toggle */}
+      <div className="absolute top-0 left-0 right-0 p-4 z-20 flex items-center justify-between pointer-events-none">
+        {/* Call Info — Now at the top-left corner */}
+        <div className="flex items-center gap-2 pointer-events-none">
+          <div className="bg-black/20 p-1 px-2 rounded-full backdrop-blur-sm border border-white/5 flex items-center gap-2">
+            <div className="w-6 h-6 bg-emerald-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-lg">
+              V
+            </div>
+            <p className="text-white/90 text-xs font-mono">
               {callId?.slice(0, 8)}...
             </p>
           </div>
-          
+
           <div className="bg-red-500/20 px-3 py-1 rounded-full border border-red-500/30 flex items-center gap-2 transition-all duration-300">
             <div className={`w-2 h-2 rounded-full ${callParticipants.length > 1 ? "bg-green-500 animate-pulse" : "bg-red-500"}`} />
             <span className="text-white text-xs font-mono font-medium">
@@ -419,7 +420,30 @@ const CallRoom = () => {
             </span>
           </div>
         </div>
+
+        {/* Chat button — Now at the top-right corner */}
+        <div className="pointer-events-auto">
+          <button
+            onClick={() => { setShowChat(prev => !prev); setShowEmojiPanel(false); }}
+            title="In-call messages"
+            className={`relative flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 active:scale-95 ${
+              showChat
+                ? "bg-white text-black shadow-lg"
+                : "bg-black/30 backdrop-blur-xl border border-white/10 text-white hover:bg-black/50"
+            }`}
+          >
+            <MessageSquare size={16} />
+            <span className="text-xs font-semibold">Chat</span>
+            {unreadCount > 0 && !showChat && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-emerald-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
+
+
 
       {/* Bottom Controls */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-6 py-1 bg-black/40 backdrop-blur-xl rounded-full border border-white/10 z-30 flex items-center gap-3 md:gap-6 shadow-2xl">
@@ -474,20 +498,6 @@ const CallRoom = () => {
           </button>
         )}
 
-        {/* Chat toggle button */}
-        <button
-          onClick={() => { setShowChat(prev => !prev); setShowEmojiPanel(false); }}
-          className={`relative p-3 rounded-full transition-all duration-300 active:scale-90 ${showChat ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"}`}
-          title="In-call Chat"
-        >
-          <MessageSquare size={20} />
-          {unreadCount > 0 && !showChat && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </button>
-
         <button 
          onClick={toggleEmojiPanel}
          className={`p-3 rounded-full transition-all duration-300 active:scale-90 ${showEmojiPanel ? "bg-white text-black scale-110 shadow-[0_0_20px_rgba(255,255,255,0.3)]" : "bg-white/10 text-white hover:bg-white/20"}`}
@@ -496,6 +506,7 @@ const CallRoom = () => {
           <Smile size={20} className={showEmojiPanel ? "animate-bounce" : ""} />
         </button>
       </div>
+
 
       {showEmojiPanel && (
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 w-[90vw] max-w-fit p-1.5 md:p-2 bg-neutral-900/80 backdrop-blur-2xl rounded-[1.5rem] md:rounded-[2.5rem] border border-white/20 z-40 shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in-95 slide-in-from-bottom-6 duration-300">
