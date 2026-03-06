@@ -17,8 +17,9 @@ export const setUpLocalMedia = async () => {
 export const setUpScreenMedia = async () => {
   try {
     const screen = await navigator.mediaDevices.getDisplayMedia({
-      
+      video: true,
     })
+    return screen
   } catch (error) {
     
   }
@@ -254,6 +255,27 @@ export const initPeerConnection = async () => {
   console.log(" RTCPeerConnection created");
   return pc;
 };
+
+
+// export const getVideoSenders = () => {
+//   if(!pc) {
+//     return null
+//   }
+//   const videoSenders = pc.getSenders().find(sender => sender.track.kind === "video")
+//   return videoSenders;
+// }
+
+export const replaceTracks = (screenTrack) => {
+  if (!pc) return
+  const sender = pc.getSenders().find(
+  sender => sender.track?.kind === "video"
+)
+
+if(sender) {
+  sender.replaceTrack(screenTrack)
+}
+}
+
 
 export const createOffer = async () => {
   if (!pc) await initPeerConnection();

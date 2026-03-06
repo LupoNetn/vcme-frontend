@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, NavLink } from "react-router-dom";
-import { Mic, Video, PhoneOff, MicOff, VideoOff, User, Smile } from "lucide-react";
+import { Mic, Video, PhoneOff, MicOff, VideoOff, User, Smile, ScreenShareIcon, ScreenShareOff, ScreenShareOffIcon } from "lucide-react";
 import WaitingRoomApproval from "../components/WaitingRoomApproval";
 import useWebsocketStore from "../store/WebsocketStore.jsx";
 import useAuthStore from "../store/AuthStore";
 import useCallStore from "../store/CallStore";
 import useVideoStore from "../store/VideoStore.js";
 import useCall from "../hooks/useCall";
+import { replaceTracks, setUpScreenMedia } from "../lib/webrtcManager.js";
 
 const FloatingEmoji = ({ emoji, onComplete }) => {
   // We only randomize the horizontal starting point (40% to 60%)
@@ -41,14 +42,18 @@ const CallRoom = () => {
   const removeEmoji = useCallStore((state) => state.removeEmoji);
   const localStream = useVideoStore((state) => state.localStream);
   const remoteStream = useVideoStore((state) => state.remoteStream);
+  const screenStream = useVideoStore((state) => state.screenStream);
+  const setScreenStream = useVideoStore((state) => state.setScreenStream)
   const { findCallByLink } = useCall();
   const remoteStreamRef = useRef(null);
   const localStreamRef = useRef(null);
+  const screenTrackRef = useRef(null)
   const { endCall } = useCall();
 
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [showEmojiPanel, setShowEmojiPanel] = useState(false);
+  const [shareScreen, setShareScreen] = useState(false)
 
   const emoji = [
     "😀", "😂", "🤔", "😎", "😭", "😡", "👍", "👎",
@@ -81,10 +86,38 @@ const CallRoom = () => {
   }, [callId, currentCall, user?.id]);
 
   useEffect(() => {
-    if (localStream && localStreamRef.current) {
+    if (screenStream) {
+      localStreamRef.current.srcObject = screenStream
+    } else if (localStream && localStreamRef.current) {
       localStreamRef.current.srcObject = localStream;
     }
-  }, [localStream]);
+  }, [localStream, screenStream]);
+  
+  const toggleSharescreenState = () => {
+    setShareScreen(prev => !prev)
+  }
+
+  const handleShareScreen = async () => {
+    toggleSharescreenState()
+    const screen = await setUpScreenMedia()
+    setScreenStream(screen)
+
+    screenTrackRef.current = screen.getVideoTracks()[0]
+    replaceTracks(screenTrackRef.current)
+  }
+
+  const stopShareScreen = async () => {
+    toggleSharescreenState()
+    const cameraTrack = localStream.getVideoTracks()[0]
+    replaceTracks(cameraTrack)
+
+     setScreenStream(null)
+      if (localStreamRef.current) {
+       localStreamRef.current.srcObject = localStream
+    }
+  }
+
+  
 
   useEffect(() => {
     if (remoteStream && remoteStreamRef.current) {
@@ -258,7 +291,7 @@ const CallRoom = () => {
       </div>
 
       {/* Bottom Controls */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 bg-black/40 backdrop-blur-xl rounded-full border border-white/10 z-30 flex items-center gap-6 shadow-2xl">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-6 py-1 bg-black/40 backdrop-blur-xl rounded-full border border-white/10 z-30 flex items-center gap-3 md:gap-6 shadow-2xl">
         <button
           onClick={toggleAudio}
           className={`p-3 rounded-full transition-all active:scale-90 ${isMuted ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"}`}
@@ -268,6 +301,15 @@ const CallRoom = () => {
         </button>
 
         <button
+          onClick={toggleVideo}
+          className={`p-3 rounded-full transition-all active:scale-90 ${isVideoOff ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"}`}
+          title="Toggle Camera"
+        >
+          {isVideoOff ? <VideoOff size={20} /> : <Video size={20} />}
+        </button>
+
+        
+        <button
           onClick={() => handleLeaveRoom()}
           className="p-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-all active:scale-90 text-white shadow-lg shadow-red-500/30"
           title="End Call"
@@ -275,12 +317,13 @@ const CallRoom = () => {
           <PhoneOff size={24} fill="currentColor" />
         </button>
 
+
         <button
-          onClick={toggleVideo}
-          className={`p-3 rounded-full transition-all active:scale-90 ${isVideoOff ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"}`}
-          title="Toggle Camera"
+         onClick={shareScreen ? stopShareScreen : handleShareScreen}
+         className={`p-3 rounded-full transition-all active:scale-90 ${isVideoOff ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"}`}
+         title="Share Screen"
         >
-          {isVideoOff ? <VideoOff size={20} /> : <Video size={20} />}
+          {shareScreen ? <ScreenShareOffIcon size={20}/> : <ScreenShareIcon size={20}/>}
         </button>
 
         <button 
