@@ -185,3 +185,7 @@ export const handleEmojiReceived = (payload) => {
     console.log("Emoji received:", payload.emoji);
     useCallStore.getState().addEmoji(payload);
 }
+
+export const handleChatMessageReceived = (payload) => {
+    useCallStore.getState().addChatMessage(payload);
+}

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, NavLink } from "react-router-dom";
-import { Mic, Video, PhoneOff, MicOff, VideoOff, User, Smile, ScreenShareIcon, ScreenShareOff, ScreenShareOffIcon, SwitchCamera } from "lucide-react";
+import { Mic, Video, PhoneOff, MicOff, VideoOff, User, Smile, ScreenShareIcon, ScreenShareOff, ScreenShareOffIcon, SwitchCamera, MessageSquare, Send, X } from "lucide-react";
 import WaitingRoomApproval from "../components/WaitingRoomApproval";
 import useWebsocketStore from "../store/WebsocketStore.jsx";
 import useAuthStore from "../store/AuthStore";
@@ -41,6 +41,9 @@ const CallRoom = () => {
   const callParticipants = useCallStore((state) => state.callParticipants);
   const activeEmojis = useCallStore((state) => state.activeEmojis);
   const removeEmoji = useCallStore((state) => state.removeEmoji);
+  const chatMessages = useCallStore((state) => state.chatMessages);
+  const addChatMessage = useCallStore((state) => state.addChatMessage);
+  const clearChatMessages = useCallStore((state) => state.clearChatMessages);
   const localStream = useVideoStore((state) => state.localStream);
   const remoteStream = useVideoStore((state) => state.remoteStream);
   const screenStream = useVideoStore((state) => state.screenStream);
@@ -57,7 +60,12 @@ const CallRoom = () => {
   const [shareScreen, setShareScreen] = useState(false)
   const [isMobile, setIsMobile] = useState(false);
   const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
-  const [facingMode, setFacingMode] = useState("user"); // "user" = front, "environment" = back
+  const [facingMode, setFacingMode] = useState("user");
+  const [showChat, setShowChat] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
+  const chatEndRef = useRef(null);
+  const chatInputRef = useRef(null);
 
 
 
@@ -65,6 +73,48 @@ const CallRoom = () => {
     "😀", "😂", "🤔", "😎", "😭", "😡", "👍", "👎",
     "❤️", "🔥",
   ];
+
+  // Auto-scroll chat to bottom when new messages arrive
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!showChat && chatMessages.length > 0) {
+      setUnreadCount((prev) => prev + 1);
+    }
+  }, [chatMessages]);
+
+  // Reset unread badge when chat is opened
+  useEffect(() => {
+    if (showChat) setUnreadCount(0);
+  }, [showChat]);
+
+  // Clear messages when leaving the call
+  useEffect(() => {
+    return () => clearChatMessages();
+  }, []);
+
+  const sendChatMessage = () => {
+    const text = chatInput.trim();
+    if (!text || !currentCall) return;
+    const callIdToUse = typeof currentCall === "object" ? currentCall?.id : currentCall;
+    send({
+      event_type: "send_chat_message",
+      payload: {
+        call_id: callIdToUse,
+        participant_id: user.id,
+        message: text,
+      },
+    });
+    setChatInput("");
+    chatInputRef.current?.focus();
+  };
+
+  const handleChatKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendChatMessage();
+    }
+  };
+
 
 
 
@@ -141,73 +191,64 @@ const CallRoom = () => {
 
     const nextFacing = facingMode === "user" ? "environment" : "user";
 
+    // Grab the current video track BEFORE we do anything
+    const oldVideoTrack = localStream.getVideoTracks()[0];
+
     try {
-      // ── Tier 1: enumerate real device IDs and pick the next one ──────────
-      // NOTE: deviceId labels are only populated after the user has already
-      // granted camera permission (which they have — they're in a call).
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = devices.filter((d) => d.kind === "videoinput" && d.deviceId);
-
-      let newStream = null;
-
-      if (videoDevices.length >= 2) {
-        // Find the current track's deviceId so we can pick a *different* one
-        const currentTrack = localStream.getVideoTracks()[0];
-        const currentDeviceId = currentTrack?.getSettings?.()?.deviceId;
-
-        const nextDevice = videoDevices.find((d) => d.deviceId !== currentDeviceId)
-          ?? videoDevices[0]; // fallback: just pick the first if nothing matches
-
-        try {
-          newStream = await navigator.mediaDevices.getUserMedia({
-            video: { deviceId: { exact: nextDevice.deviceId } },
-            audio: false,
-          });
-        } catch (_) {
-          // deviceId switch failed — fall through to tier 2
-          newStream = null;
-        }
+      // ── CRITICAL: stop the old track first ───────────────────────────────
+      // Mobile OSes (Android/iOS) lock the camera hardware to one stream at a
+      // time. If the old track is still running when getUserMedia fires, it
+      // throws NotReadableError / OverconstrainedError regardless of constraints.
+      if (oldVideoTrack) {
+        localStream.removeTrack(oldVideoTrack);
+        oldVideoTrack.stop(); // releases the hardware lock
       }
 
-      // ── Tier 2: use facingMode as a soft hint (no "exact") ───────────────
-      if (!newStream) {
-        newStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: nextFacing },
-          audio: false,
-        });
-      }
+      // ── Request the new camera ────────────────────────────────────────────
+      // Use a soft facingMode hint — no "exact" — so the browser can fall back
+      // gracefully if the facing mode isn't available instead of throwing.
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: nextFacing },
+        audio: false,
+      });
 
       const newVideoTrack = newStream.getVideoTracks()[0];
 
-      // Swap the track in the local MediaStream object
-      const oldVideoTrack = localStream.getVideoTracks()[0];
-      if (oldVideoTrack) {
-        localStream.removeTrack(oldVideoTrack);
-        oldVideoTrack.stop();
-      }
+      // Add the new track to the existing local stream
       localStream.addTrack(newVideoTrack);
 
-      // Refresh the local PIP preview
+      // Update the local PIP preview
       if (localStreamRef.current) {
         localStreamRef.current.srcObject = localStream;
       }
 
-      // Push the new track to the remote peer — no renegotiation needed
+      // Send the new track to the remote peer (no renegotiation needed)
       replaceTracks(newVideoTrack);
 
-      // Persist the new facing state only on success
+      // Persist state only on success
       setFacingMode(nextFacing);
 
     } catch (err) {
-      console.error("switchCamera error:", err);
-      // Only show a user-visible error for real failures (not OverconstrainedError
-      // from tier 1 which we already caught and retried in tier 2)
-      toast.error("Camera switch failed. Please check camera permissions.");
+      console.error("switchCamera error:", err.name, err.message);
+
+      // If the new camera failed to open, restore the old track so the call
+      // continues with the previous camera rather than losing video entirely.
+      try {
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: facingMode }, // go back to the previous camera
+          audio: false,
+        });
+        const fallbackTrack = fallbackStream.getVideoTracks()[0];
+        localStream.addTrack(fallbackTrack);
+        if (localStreamRef.current) localStreamRef.current.srcObject = localStream;
+        replaceTracks(fallbackTrack);
+      } catch (_) { /* nothing we can do — video will be blank */ }
+
+      toast.error("Could not switch camera.");
     } finally {
       setIsSwitchingCamera(false);
     }
   };
-
 
   useEffect(() => {
     if (remoteStream && remoteStreamRef.current) {
@@ -433,6 +474,20 @@ const CallRoom = () => {
           </button>
         )}
 
+        {/* Chat toggle button */}
+        <button
+          onClick={() => { setShowChat(prev => !prev); setShowEmojiPanel(false); }}
+          className={`relative p-3 rounded-full transition-all duration-300 active:scale-90 ${showChat ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"}`}
+          title="In-call Chat"
+        >
+          <MessageSquare size={20} />
+          {unreadCount > 0 && !showChat && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </button>
+
         <button 
          onClick={toggleEmojiPanel}
          className={`p-3 rounded-full transition-all duration-300 active:scale-90 ${showEmojiPanel ? "bg-white text-black scale-110 shadow-[0_0_20px_rgba(255,255,255,0.3)]" : "bg-white/10 text-white hover:bg-white/20"}`}
@@ -469,6 +524,87 @@ const CallRoom = () => {
           
           {/* Subtle indicator triangle - Hidden on very small screens if it looks weird */}
           <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-neutral-900/80 border-r border-b border-white/20 rotate-45 backdrop-blur-2xl hidden md:block" />
+        </div>
+      )}
+
+      {/* ── In-call Chat Panel (Google Meet style) ── */}
+      {showChat && (
+        <div className="absolute right-0 top-0 bottom-0 w-full sm:w-80 md:w-96 z-40 flex flex-col"
+          style={{ background: "rgba(10,12,22,0.97)", borderLeft: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          {/* Panel header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
+            <div className="flex items-center gap-2">
+              <MessageSquare size={16} className="text-emerald-400" />
+              <span className="text-white font-semibold text-sm">In-call messages</span>
+            </div>
+            <button
+              onClick={() => setShowChat(false)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Messages area */}
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+            {chatMessages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center py-10">
+                <MessageSquare size={32} className="text-slate-600 mb-3" />
+                <p className="text-slate-500 text-sm">No messages yet.</p>
+                <p className="text-slate-600 text-xs mt-1">Messages are visible only during this call.</p>
+              </div>
+            ) : (
+              chatMessages.map((msg) => {
+                const isMe = msg.sender_id === user?.id;
+                return (
+                  <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
+                    {!isMe && (
+                      <span className="text-[11px] text-slate-500 mb-1 ml-1">{msg.sender_name}</span>
+                    )}
+                    <div
+                      className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
+                        isMe
+                          ? "bg-emerald-600 text-white rounded-tr-sm"
+                          : "bg-white/10 text-white rounded-tl-sm"
+                      }`}
+                    >
+                      {msg.message}
+                    </div>
+                    <span className="text-[10px] text-slate-600 mt-1 mx-1">{msg.sent_at}</span>
+                  </div>
+                );
+              })
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Input area */}
+          <div className="px-3 py-3 border-t border-white/8">
+            <div
+              className="flex items-end gap-2 rounded-2xl px-3 py-2"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}
+            >
+              <textarea
+                ref={chatInputRef}
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={handleChatKeyDown}
+                placeholder="Send a message…"
+                rows={1}
+                className="flex-1 bg-transparent resize-none text-sm text-white placeholder:text-slate-600 outline-none leading-relaxed max-h-24"
+                style={{ scrollbarWidth: "none" }}
+              />
+              <button
+                onClick={sendChatMessage}
+                disabled={!chatInput.trim()}
+                className="p-1.5 rounded-xl text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0"
+              >
+                <Send size={16} />
+              </button>
+            </div>
+            <p className="text-center text-[10px] text-slate-600 mt-2">Messages are not saved after the call ends</p>
+          </div>
         </div>
       )}
 

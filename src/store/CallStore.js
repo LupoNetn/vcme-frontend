@@ -43,6 +43,13 @@ const useCallStore = create((set) => ({
     removeEmoji: (id) => set((state) => ({
         activeEmojis: state.activeEmojis.filter(e => e.id !== id)
     })),
+
+    // In-call chat messages
+    chatMessages: [],
+    addChatMessage: (msg) => set((state) => ({
+        chatMessages: [...state.chatMessages, { id: Date.now() + Math.random(), ...msg }]
+    })),
+    clearChatMessages: () => set({ chatMessages: [] }),
 }));
 
 export default useCallStore;
