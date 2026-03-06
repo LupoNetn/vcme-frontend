@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, NavLink } from "react-router-dom";
-import { Mic, Video, PhoneOff, MicOff, VideoOff, User, Smile, ScreenShareIcon, ScreenShareOff, ScreenShareOffIcon } from "lucide-react";
+import { Mic, Video, PhoneOff, MicOff, VideoOff, User, Smile, ScreenShareIcon, ScreenShareOff, ScreenShareOffIcon, SwitchCamera } from "lucide-react";
 import WaitingRoomApproval from "../components/WaitingRoomApproval";
 import useWebsocketStore from "../store/WebsocketStore.jsx";
 import useAuthStore from "../store/AuthStore";
@@ -8,6 +8,7 @@ import useCallStore from "../store/CallStore";
 import useVideoStore from "../store/VideoStore.js";
 import useCall from "../hooks/useCall";
 import { replaceTracks, setUpScreenMedia } from "../lib/webrtcManager.js";
+import toast from "react-hot-toast";
 
 const FloatingEmoji = ({ emoji, onComplete }) => {
   // We only randomize the horizontal starting point (40% to 60%)
@@ -54,6 +55,11 @@ const CallRoom = () => {
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [showEmojiPanel, setShowEmojiPanel] = useState(false);
   const [shareScreen, setShareScreen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false);
+  const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
+  const [facingMode, setFacingMode] = useState("user"); // "user" = front, "environment" = back
+
+
 
   const emoji = [
     "😀", "😂", "🤔", "😎", "😭", "😡", "👍", "👎",
@@ -86,6 +92,14 @@ const CallRoom = () => {
   }, [callId, currentCall, user?.id]);
 
   useEffect(() => {
+    const hasTouch = window.matchMedia("(pointer: coarse)").matches;
+    const hasUA = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    // Require BOTH a mobile UA and a touch-only pointer so desktop DevTools
+    // emulation (which keeps a mouse pointer) doesn't falsely hide screen share.
+    setIsMobile(hasTouch && hasUA);
+  }, []);
+
+  useEffect(() => {
     if (screenStream) {
       localStreamRef.current.srcObject = screenStream
     } else if (localStream && localStreamRef.current) {
@@ -98,6 +112,10 @@ const CallRoom = () => {
   }
 
   const handleShareScreen = async () => {
+    if(isMobile) {
+      toast.error("screen sharing is not available on all mobile browsers, to access it use a desktop browser...")
+      return
+    }
     toggleSharescreenState()
     const screen = await setUpScreenMedia()
     setScreenStream(screen)
@@ -117,7 +135,57 @@ const CallRoom = () => {
     }
   }
 
-  
+  const switchCamera = async () => {
+    if (!localStream || isSwitchingCamera) return;
+    setIsSwitchingCamera(true);
+    try {
+      // Enumerate all video input devices
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter((d) => d.kind === "videoinput");
+
+      if (videoDevices.length < 2) {
+        toast.error("No second camera found on this device.");
+        setIsSwitchingCamera(false);
+        return;
+      }
+
+      // Toggle between front and back
+      const nextFacing = facingMode === "user" ? "environment" : "user";
+      setFacingMode(nextFacing);
+
+      // Get a new stream with the opposite camera
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { exact: nextFacing } },
+        audio: false,
+      });
+
+      const newVideoTrack = newStream.getVideoTracks()[0];
+
+      // Replace the track in the local preview
+      const oldVideoTrack = localStream.getVideoTracks()[0];
+      localStream.removeTrack(oldVideoTrack);
+      localStream.addTrack(newVideoTrack);
+      oldVideoTrack.stop();
+
+      // Update the local video element
+      if (localStreamRef.current) {
+        localStreamRef.current.srcObject = localStream;
+      }
+
+      // Replace the track being sent to the remote peer
+      replaceTracks(newVideoTrack);
+
+      // When the new camera track ends (user stops it externally), stop it cleanly
+      newVideoTrack.onended = () => {
+        switchCamera();
+      };
+    } catch (err) {
+      console.error("switchCamera error:", err);
+      toast.error("Could not switch camera. Make sure camera permissions are granted.");
+    } finally {
+      setIsSwitchingCamera(false);
+    }
+  };
 
   useEffect(() => {
     if (remoteStream && remoteStreamRef.current) {
@@ -318,13 +386,30 @@ const CallRoom = () => {
         </button>
 
 
-        <button
-         onClick={shareScreen ? stopShareScreen : handleShareScreen}
-         className={`p-3 rounded-full transition-all active:scale-90 ${isVideoOff ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"}`}
-         title="Share Screen"
-        >
-          {shareScreen ? <ScreenShareOffIcon size={20}/> : <ScreenShareIcon size={20}/>}
-        </button>
+        {/* Screen share — desktop only */}
+        {!isMobile && (
+          <button
+           onClick={shareScreen ? stopShareScreen : handleShareScreen}
+           className={`p-3 rounded-full transition-all active:scale-90 ${shareScreen ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"}`}
+           title="Share Screen"
+          >
+            {shareScreen ? <ScreenShareOffIcon size={20}/> : <ScreenShareIcon size={20}/>}
+          </button>
+        )}
+
+        {/* Switch camera — mobile only */}
+        {isMobile && (
+          <button
+            onClick={switchCamera}
+            disabled={isSwitchingCamera}
+            className={`p-3 rounded-full transition-all active:scale-90 bg-white/10 text-white hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed ${
+              isSwitchingCamera ? "animate-spin" : ""
+            }`}
+            title="Switch Camera"
+          >
+            <SwitchCamera size={20} />
+          </button>
+        )}
 
         <button 
          onClick={toggleEmojiPanel}
