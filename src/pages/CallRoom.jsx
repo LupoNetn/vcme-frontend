@@ -138,54 +138,76 @@ const CallRoom = () => {
   const switchCamera = async () => {
     if (!localStream || isSwitchingCamera) return;
     setIsSwitchingCamera(true);
-    try {
-      // Enumerate all video input devices
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = devices.filter((d) => d.kind === "videoinput");
 
-      if (videoDevices.length < 2) {
-        toast.error("No second camera found on this device.");
-        setIsSwitchingCamera(false);
-        return;
+    const nextFacing = facingMode === "user" ? "environment" : "user";
+
+    try {
+      // ── Tier 1: enumerate real device IDs and pick the next one ──────────
+      // NOTE: deviceId labels are only populated after the user has already
+      // granted camera permission (which they have — they're in a call).
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter((d) => d.kind === "videoinput" && d.deviceId);
+
+      let newStream = null;
+
+      if (videoDevices.length >= 2) {
+        // Find the current track's deviceId so we can pick a *different* one
+        const currentTrack = localStream.getVideoTracks()[0];
+        const currentDeviceId = currentTrack?.getSettings?.()?.deviceId;
+
+        const nextDevice = videoDevices.find((d) => d.deviceId !== currentDeviceId)
+          ?? videoDevices[0]; // fallback: just pick the first if nothing matches
+
+        try {
+          newStream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: { exact: nextDevice.deviceId } },
+            audio: false,
+          });
+        } catch (_) {
+          // deviceId switch failed — fall through to tier 2
+          newStream = null;
+        }
       }
 
-      // Toggle between front and back
-      const nextFacing = facingMode === "user" ? "environment" : "user";
-      setFacingMode(nextFacing);
-
-      // Get a new stream with the opposite camera
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { exact: nextFacing } },
-        audio: false,
-      });
+      // ── Tier 2: use facingMode as a soft hint (no "exact") ───────────────
+      if (!newStream) {
+        newStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: nextFacing },
+          audio: false,
+        });
+      }
 
       const newVideoTrack = newStream.getVideoTracks()[0];
 
-      // Replace the track in the local preview
+      // Swap the track in the local MediaStream object
       const oldVideoTrack = localStream.getVideoTracks()[0];
-      localStream.removeTrack(oldVideoTrack);
+      if (oldVideoTrack) {
+        localStream.removeTrack(oldVideoTrack);
+        oldVideoTrack.stop();
+      }
       localStream.addTrack(newVideoTrack);
-      oldVideoTrack.stop();
 
-      // Update the local video element
+      // Refresh the local PIP preview
       if (localStreamRef.current) {
         localStreamRef.current.srcObject = localStream;
       }
 
-      // Replace the track being sent to the remote peer
+      // Push the new track to the remote peer — no renegotiation needed
       replaceTracks(newVideoTrack);
 
-      // When the new camera track ends (user stops it externally), stop it cleanly
-      newVideoTrack.onended = () => {
-        switchCamera();
-      };
+      // Persist the new facing state only on success
+      setFacingMode(nextFacing);
+
     } catch (err) {
       console.error("switchCamera error:", err);
-      toast.error("Could not switch camera. Make sure camera permissions are granted.");
+      // Only show a user-visible error for real failures (not OverconstrainedError
+      // from tier 1 which we already caught and retried in tier 2)
+      toast.error("Camera switch failed. Please check camera permissions.");
     } finally {
       setIsSwitchingCamera(false);
     }
   };
+
 
   useEffect(() => {
     if (remoteStream && remoteStreamRef.current) {
