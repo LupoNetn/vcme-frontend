@@ -324,7 +324,7 @@ const CallRoom = () => {
   };
 
   const handleLeaveRoom = async () => {
-    // robust check for call ID and title
+    // robust check for call  details
     const callIdToUse = typeof currentCall === 'object' ? currentCall?.id : currentCall;
     const callTitleToUse = typeof currentCall === 'object' ? currentCall?.title : "Video Call"; 
 
